@@ -1,0 +1,2247 @@
+%%%==============================================================================
+%% Copyright 2023-present by Alceu Frigeri
+%%
+%% This work may be distributed and/or modified under the conditions of
+%%
+%% * The [LaTeX Project Public License](http://www.latex-project.org/lppl.txt),
+%%   version 1.3c (or later), and/or
+%% * The [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.html),
+%%   version 3 (or later)
+%%
+%% This work has the LPPL maintenance status *maintained*.
+%%
+%% The Current Maintainer of this work is Alceu Frigeri
+%%
+%% This is version {0.1} {2023/12/05}
+%%
+%% The list of files that compose this work can be found in the README.md file at
+%% https://ctan.org/pkg/ctikzext
+%%
+%%%==============================================================================
+%% WARNING: These are personal packs/tests
+%%          They might and probably will change at will as needed
+%% 
+%%%==============================================================================
+\NeedsTeXFormat{LaTeX2e}[2022/06/01]
+
+
+\ProvidesExplPackage
+    {ctikzext}
+    {2023/12/05}
+    {0.1}
+    {CircuiTikZ Extensions}
+
+\ExplSyntaxOn
+%%%%%%%
+%%%
+%%% Just an attempt of having my packages info in a regular way
+%%% Idea being: { <pck-name> / pkg info } for each and all.
+%%%
+%%%%%%%
+\keys_define:nn { ctikzext / pkg info}
+  {
+     name        .code:n = {ctikzext} ,
+     prefix      .code:n = {ctikzext} ,
+     date        .code:n = {2023/12/05},
+     version     .code:n = {0.1} ,
+     description .code:n = {CircuiTikZ Extensions}
+  }
+\cs_if_exist:NF \__codedesc_pkg_info:nn 
+  {
+    \cs_new_protected:Npn \__codedesc_pkg_info:nn #1#2
+      { \keys_set:nn {#1 / pkg info}{#2} }
+  }
+\cs_if_exist:NF \PkgInfo
+  { \NewDocumentCommand \PkgInfo {mm} { \keys_set:nn {#1 / pkg info}{#2} } }
+\cs_if_exist:NF \PkgDescription
+  { 
+    \NewDocumentCommand \PkgDescription {m} 
+      { 
+        \noindent Package~ \textbf{\PkgInfo{#1}{name}}~Version:~\PkgInfo{#1}{version}~ -~ \PkgInfo{#1}{date}\par \emph{\PkgInfo{#1}{description}}~\par 
+      } 
+  }  
+%%%%%%%
+%%% End of cut-n-paste
+%%%%%%%
+
+%%%%%%%
+%%%
+%%% yeah, unfortunately, I will need that if outside expl3 code regimè
+%%%
+%%%%%%%
+\newif\ifctikzext@@xtracmds
+\ctikzext@@xtracmdstrue
+
+\keys_define:nn {ctikzext }
+  {
+    noxtracmds .usage:n = load ,
+    noxtracmds .legacy_if_gset_inverse:n = ctikzext@@xtracmds ,
+  }
+\ProcessKeyOptions [ ctikzext ]
+
+
+\RequirePackage{pgfkeysearch}
+
+\ExplSyntaxOff
+
+
+\makeatletter
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Start of the conditional commands definition
+%%%
+%%%%%%%%%%%%%%%%%%%
+
+\ifctikzext@@xtracmds
+
+  %%%%%%%%%%%%%%%%%%%
+  %%%
+  %%% Just a 'handy' macro for a parallel connection (needs a recent kernel, thought)
+  %%% Both Quadripoles are assumed to be a top each other (x center aligned, same width)
+  %%%
+  %%%%%%%%%%%%%%%%%%%
+      \NewDocumentCommand{\QuadParConnect}{smmm}{
+      	\ifstrequal{#4}{1}{\def\ctikzext@@Qsig{-}}{\def\ctikzext@@Qsig{}}
+        \SearchValueOf{QuadKeys}{outer ext}{\@@outerext}
+        \IfBooleanTF{#1}{
+          \draw
+      			(#2.#4+) -- ++(\ctikzext@@Qsig3*\ctikzext@@ValueOf{QuadKeys}{outer ext}/8,0) \coord(conn-#2.1+) |- (#3.#4+)
+            (#2.#4-) -- ++(\ctikzext@@Qsig\ctikzext@@ValueOf{QuadKeys}{outer ext}/4,0) to[controls=+(90:0.1) and +(90:0.1)] ++(\ctikzext@@Qsig\@@outerext/4,0) -- ++(\ctikzext@@Qsig\@@outerext/4,0) \coord(coon-#2.1-) |- (#3.#4-)
+            ;
+      	}{
+      		\draw 
+      			(#3.#4-) -- ++(\ctikzext@@Qsig3*\ctikzext@@ValueOf{QuadKeys}{outer ext}/8,0) \coord(coon-#3.1-) |- (#2.#4-)
+            (#3.#4+) -- ++(\ctikzext@@Qsig\ctikzext@@ValueOf{QuadKeys}{outer ext}/4,0) to[controls=+(90:0.1) and +(90:0.1)] ++(\ctikzext@@Qsig\@@outerext/4,0) -- ++(\ctikzext@@Qsig\@@outerext/4,0)  \coord(coon-#3.1-) |- (#2.#4+)
+          ;
+      	}
+      }
+
+  %%%%%%%%%%%%%%%%%%%
+  %%%%
+  %%%% some handy/auxiliary macros to define coordinate/node pairs (and selectively 'pin' them)
+  %%%% based on the idea from Redaelli et al. (CircuiTiKz)
+  %%%%
+  %%%% differences: variable number of paramenters (see below) and it always also adds an empty node <n-coord>
+  %%%%
+  %%%%%%%%%%%%%%%%%%%
+
+    %%
+    %% There is no easy and clean way 
+    %% to convert this to expl3 (for instance underscore, under expl3 code regimè, is a letter)
+    %% spaces (pgf/tikz) and then ':' ... and still being expandable
+    %%
+      \newcommand\showcoordsfalse{\let\coord=\@@coordnode}
+      \newcommand\showcoordstrue{\let\coord=\@@coordpin}
+      \showcoordsfalse
+      
+      \def\@@coordpin(#1){\pincoord(#1,red,45)}
+      \def\@@coordnode(#1){coordinate(#1)  node(n-#1){}}
+    %%%%
+    %%
+    %%  And some TeX trickery to have a (expandable) variable number of parameters
+    %%  \pincoord can be used as
+    %%  \pincoord(coord-name) That's case D
+    %%  \pincoord(coord-name,color) That's case C
+    %%  \pincoord(coord-name,color,angle) That's case B
+    %%  \pincoord(coord-name,color,angle,lenght) That's case A
+    %%
+    %%%%    
+      \def\pincoord(#1){\@@pincase#1,,,,\@@pincaseA\@@pincaseB\@@pincaseC\@@pincaseD\relax:}
+      \def\@@pincase#1,#2,#3,#4,#5#6#7#8#9:{#8:#1:#2:#3:#4:}
+      \def\@@pincaseA:#1:#2:#3:#4:{\genpincoord{#1}{#2}{#3}{#4}}
+      \def\@@pincaseB:#1:#2:#3:#4:{\genpincoord{#1}{#2}{#3}{4}}
+      \def\@@pincaseC:#1:#2:#3:#4:{\genpincoord{#1}{#2}{-45}{4}}
+      \def\@@pincaseD:#1:#2:#3:#4:{\genpincoord{#1}{blue}{-45}{4}}
+
+      \newcommand\genpincoord[4]{%
+        coordinate(#1) node(n-#1){}
+        node[circle, #2,  inner sep=1.2pt, outer sep=0pt, radius=1pt, fill=#2!20!white, fill opacity=0.2, draw opacity=0.4, draw,
+          pin={[#2, overlay, inner sep=0pt, outer sep=1pt, font=\tiny, pin distance=#4pt,
+          pin edge={#2, overlay}]#3:#1}]{}%
+        }
+        
+\fi
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% End of the conditional part
+%%%
+%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%
+%%% This only makes sense 'for this package'
+%%%
+\NewDocumentCommand{\SearchValueOf}{mmm}{%
+    \pgfkeysearchvalueof{\csuse{ctikzext@@#1Path}}{#2}{#3}
+  } 
+
+%
+%%%%%%%%%%%%%%%
+%%%
+%%% In case \SearchValueOf 'fails' one could use this (no expl3 code)
+%%%
+%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@ValueOf}[2]{\pgfkeysvalueof{\csuse{ctikzext@@#1Path}/#2}} 
+
+
+\newtoggle{ctikzext@@toggle@inverted}
+\newtoggle{ctikzext@@toggle@generic}
+\newtoggle{ctikzext@@toggle@alternate}
+\newtoggle{ctikzext@@toggle@innermarks}
+\newtoggle{ctikzext@@toggle@outermarks}
+\newtoggle{ctikzext@@toggle@beziertip}
+\newtoggle{ctikzext@@toggle@roundsources}
+%
+
+%
+%%%%%%%%%%%%%%%
+%%%
+%%% general/base "Keys" Path
+%%%
+%%%%%%%%%%%%%%%
+%
+\def\ctikzext@@KeysPath{/tikz/ctikzext}
+\pgfkeys{\ctikzext@@KeysPath/.is family}
+
+\pgfkeys{\ctikzext@@KeysPath,
+    .search also={/tikz},
+    tip len/.initial=4pt,
+    tip type/.is choice,
+    tip type/bezier/.code={\toggletrue{ctikzext@@toggle@beziertip}},
+    tip type/triangle/.code={\togglefalse{ctikzext@@toggle@beziertip}},
+    source radius/.initial=0.3\pgf@circ@Rlen,%
+    @round sources/.code={\toggletrue{ctikzext@@toggle@roundsources}},
+    round sources/.style={@round sources},
+    @control sources/.code={\togglefalse{ctikzext@@toggle@roundsources}},
+    control sources/.style={@control sources},
+    thickness/.initial=2,       
+    @generic/.code={\toggletrue{ctikzext@@toggle@generic}},
+    generic/.style={@generic},
+    european/.style={@generic},
+    @zigzag/.code={\togglefalse{ctikzext@@toggle@generic}},
+    zigzag/.style={@zigzag},
+    american/.style={@zigzag},
+    name/.initial={}, % this will be, if defined, the node name used in a to[] path    
+    minussign len/.initial=1.0\pgf@circ@Rlen/14,%
+    plussign len/.initial=1.1\pgf@circ@Rlen/14,%
+    outer sep/.initial=1.5pt, %% Text separation
+    inner sep/.initial=1pt, %% Text separation
+}
+
+%%%%%%%%%%%%%%%
+%%%
+%%% "PGKeys" Path (from PseudoGraph)
+%%%
+%%%%%%%%%%%%%%%
+
+\def\ctikzext@@PGKeysPath{\ctikzext@@KeysPath/PseudoGraph}
+\pgfkeys{\ctikzext@@PGKeysPath/.is family}
+\pgfkeys{/tikz/PGKeys/.style={\ctikzext@@PGKeysPath}}
+
+\pgfkeys{\ctikzext@@PGKeysPath,
+    .search also={\ctikzext@@KeysPath,/tikz},      
+    x axis/.initial={\footnotesize$V$},
+    y axis/.initial={\footnotesize$I$},
+    x val/.initial={\footnotesize$V_{th}$},
+    y val/.initial={\footnotesize$I_{N}$},
+    @PGPoints/.code={%
+      \tikzmath{%
+        %real \x , \y;
+        \y{Xaxispos}=\y{innerbottom};
+        \x{Yaxispos}=\x{innerleft};
+        %
+        \x{coordA}=\x{left};
+        \y{coordA}=\y{Ctop};
+        %
+        \x{coordB}=\x{Cright};
+        \y{coordB}=\y{bottom};
+      }
+    },
+    first quadrant/.style={%
+      @PGPoints/.code={%
+        \tikzmath{%
+          %real \x , \y;
+          \y{Xaxispos}=\y{innerbottom};
+          \x{Yaxispos}=\x{innerleft};
+          %
+          \x{coordA}=\x{left};
+          \y{coordA}=\y{Ctop};
+          %
+          \x{coordB}=\x{Cright};
+          \y{coordB}=\y{bottom};
+          %
+          \y{TXaxiscoord}=\y{bottom};
+          \x{TYaxiscoord}=\x{left};
+          %
+          \x{TXvalcoord}=\x{Cright}-0;
+          \y{TXvalcoord}=\y{bottom};
+          %
+          \x{TYvalcoord}=\x{left};
+          \y{TYvalcoord}=\y{Ctop}-0;
+        }
+        \gdef\ctikzext@@PG@XaxisTanchor{top left}
+        \gdef\ctikzext@@PG@XvalTanchor{top right}
+        %
+        \gdef\ctikzext@@PG@YaxisTanchor{bottom right}
+        \gdef\ctikzext@@PG@YvalTanchor{top right}
+      },
+    },
+    second quadrant/.style={%
+      @PGPoints/.code={%
+        \tikzmath{%
+          %real \x , \y;
+          \y{Xaxispos}=\y{innerbottom};
+          \x{Yaxispos}=\x{innerright};
+          %
+          \x{coordA}=\x{right};
+          \y{coordA}=\y{Ctop};
+          %
+          \x{coordB}=\x{Cleft};
+          \y{coordB}=\y{bottom};
+          %
+          \y{TXaxiscoord}=\y{bottom};
+          \x{TYaxiscoord}=\x{Cright};
+          %
+          \x{TXvalcoord}=\x{Cleft}+2pt;
+          \y{TXvalcoord}=\y{bottom};
+          %
+          \x{TYvalcoord}=\x{right};
+          \y{TYvalcoord}=\y{Ctop}-2pt;
+        }
+        \gdef\ctikzext@@PG@XaxisTanchor{top left}
+        \gdef\ctikzext@@PG@XvalTanchor{top left}
+        %
+        \gdef\ctikzext@@PG@YaxisTanchor{bottom right}
+        \gdef\ctikzext@@PG@YvalTanchor{top left}
+      },
+    },
+    third quadrant/.style={%
+      @PGPoints/.code={%
+        \tikzmath{%
+          %real \x , \y;
+          \y{Xaxispos}=\y{innertop};
+          \x{Yaxispos}=\x{innerright};
+          %
+          \x{coordA}=\x{Cleft};
+          \y{coordA}=\y{top};
+          %
+          \x{coordB}=\x{right};
+          \y{coordB}=\y{Cbottom};
+          %
+          \y{TXaxiscoord}=\y{Ctop};
+          \x{TYaxiscoord}=\x{Cright};
+          %
+          \x{TXvalcoord}=\x{Cleft}+2pt;
+          \y{TXvalcoord}=\y{top};
+          %
+          \x{TYvalcoord}=\x{right};
+          \y{TYvalcoord}=\y{Cbottom}+2pt;
+        }
+        \gdef\ctikzext@@PG@XaxisTanchor{top left}
+        \gdef\ctikzext@@PG@XvalTanchor{bottom left}
+        %
+        \gdef\ctikzext@@PG@YaxisTanchor{bottom right}
+        \gdef\ctikzext@@PG@YvalTanchor{bottom left}
+      },
+    },
+    fourth quadrant/.style={%
+      @PGPoints/.code={%
+        \tikzmath{%
+          %real \x , \y;
+          \y{Xaxispos}=\y{innertop};
+          \x{Yaxispos}=\x{innerleft};
+          %
+          \x{coordA}=\x{left};
+          \y{coordA}=\y{Cbottom};
+          %
+          \x{coordB}=\x{Cright};
+          \y{coordB}=\y{top};
+          %
+          \y{TXaxiscoord}=\y{Ctop};
+          \x{TYaxiscoord}=\x{left};
+          %
+          \x{TXvalcoord}=\x{Cright}-2pt;
+          \y{TXvalcoord}=\y{top};
+          %
+          \x{TYvalcoord}=\x{left};
+          \y{TYvalcoord}=\y{Cbottom}+2pt;
+        }
+        \gdef\ctikzext@@PG@XaxisTanchor{top left}
+        \gdef\ctikzext@@PG@XvalTanchor{bottom right}
+        %
+        \gdef\ctikzext@@PG@YaxisTanchor{bottom right}
+        \gdef\ctikzext@@PG@YvalTanchor{bottom right}
+      },
+    },
+    half base height/.initial=0.5\pgf@circ@Rlen,%
+    base height/.code={%
+        \tikzmath{real \X;
+          \X{tmp} = 0.5*abs(#1);
+        }
+        \pgfkeysalso{\ctikzext@@QuadKeysPath/half base height=\X{tmp}}
+    },
+    half base width/.initial=0.5\pgf@circ@Rlen,%
+    base width/.code={%
+        \tikzmath{real \X;
+          \X{tmp} = 0.5*abs(#1);
+        }
+        \pgfkeysalso{\ctikzext@@QuadKeysPath/half base width=\X{tmp}}
+    },    
+}
+
+
+%%%%%%%%%%%%%%%
+%%%
+%%% "QUadKeys" Path (Quadripoles)
+%%%
+%%%%%%%%%%%%%%%
+
+\def\ctikzext@@QuadKeysPath{\ctikzext@@KeysPath/QuadKeys}
+\pgfkeys{\ctikzext@@QuadKeysPath/.is family}
+\pgfkeys{/tikz/QuadKeys/.style={\ctikzext@@QuadKeysPath}}
+
+\newcommand{\ctikzext@@QuadGetAnchor}[2]{\pgfkeys{\ctikzext@@QuadKeysPath,#1={#2}}}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% "R" Path (Rotation)
+%%%
+%%% re-mapping 'anchors names' in case of a 90 degree (clockwise) rotation
+%%%            assuming the element should always be 90 degree rotated.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\def\ctikzext@@RPath{\ctikzext@@QuadKeysPath/Anchor +90 Rotation}
+\pgfkeys{\ctikzext@@RPath/.is family}
+\pgfkeys{\ctikzext@@RPath,
+    south/.code={\csdef{#1}{west}},
+    south east/.code={\csdef{#1}{south west}},
+    east/.code={\csdef{#1}{south}},
+    north east/.code={\csdef{#1}{south east}},
+    north/.code={\csdef{#1}{east}},
+    north west/.code={\csdef{#1}{north east}},
+    west/.code={\csdef{#1}{north}},
+    south west/.code={\csdef{#1}{north west}},
+}
+\newcommand{\ctikzext@@RotateAnchor}[2]{\pgfkeys{\ctikzext@@RPath,#1={#2}}}
+
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% "AutoR" Path (Rotation)
+%%%
+%%% re-mapping 'anchors names' in case of a 90 degree (clockwise) rotation
+%%%            assuming the element should always be 90 degree rotated.
+%%%
+%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%
+%%%%%% re-mapping 'anchors names' in case of an auto 90 degree (clockwise) rotation
+%%%%%%            assuming the rotation was conditional (and original anchors were thought in the original position.)
+%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%
+%%%\def\ctikzext@@AutoRPath{\ctikzext@@QuadKeysPath/Anchor Auto +90 Rotation}
+%%%\pgfkeys{\ctikzext@@AutoRPath/.is family}
+%%%\pgfkeys{\ctikzext@@AutoRPath,
+%%%    east/.code={\csdef{#1}{south}},
+%%%    west/.code={\csdef{#1}{north}},    
+%%%    south west/.code={\csdef{#1}{south west}},
+%%%    south east/.code={\csdef{#1}{north east}},
+%%%    south/.code={\csdef{#1}{west}},
+%%%    north/.code={\csdef{#1}{east}},
+%%%    north east/.code={\csdef{#1}{north east}},
+%%%    north west/.code={\csdef{#1}{south west}},
+%%%}
+%%%\newcommand{\ctikzext@@AutoRotateAnchor}[2]{\pgfkeys{\ctikzext@@AutoRPath,#1={#2}}}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% re-mapping 'anchors names' in case of an 'auto' 90 degree (clockwise) rotation H Res -> V Res
+%%%            assuming the rotation was conditional (and original anchors were thought in the original position.)
+%%%
+%%%%%%%%%%%%%%%%%%%
+\def\ctikzext@@AutoRPath{\ctikzext@@QuadKeysPath/Anchor Auto +90 Rotation}
+\pgfkeys{\ctikzext@@AutoRPath/.is family}
+\pgfkeys{\ctikzext@@AutoRPath,
+    east/.code={\csdef{#1}{east}},
+    west/.code={\csdef{#1}{west}},    
+    south west/.code={\csdef{#1}{south east}},
+    south east/.code={\csdef{#1}{south west}},
+    south/.code={\csdef{#1}{south}},
+    north/.code={\csdef{#1}{north}},
+    north east/.code={\csdef{#1}{north west}},
+    north west/.code={\csdef{#1}{north east}},
+}
+\newcommand{\ctikzext@@AutoRotateAnchor}[2]{\pgfkeys{\ctikzext@@AutoRPath,#1={#2}}}
+
+
+%
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% re-mapping 'anchors names' in case of an 'invert' key
+%%%
+%%%%%%%%%%%%%%%%%%%
+\def\ctikzext@@TPath{\ctikzext@@QuadKeysPath/Translation}
+\pgfkeys{\ctikzext@@TPath/.is family}
+\pgfkeys{\ctikzext@@TPath,
+    setdefault/.style={#1/.code={\csdef{##1}{#1}}},
+    setdefault/.list={south west,south east,north west,north east,west,east,top left,top right,bottom left,bottom right,left,right},
+    set/.style 2 args={#1/.code={\csdef{##1}{#2}}},
+    .unknown/.code={\csdef{#1}{\pgfkeyscurrentname}},
+} 
+   
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% pgf hackery, well, extention: allowing composit names
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfkeys{/pgf/text/.cd,
+    top left/.style={/pgf/text/.cd,top,left},
+    top right/.style={/pgf/text/.cd,top,right},
+    bottom left/.style={/pgf/text/.cd,bottom,left},
+    bottom right/.style={/pgf/text/.cd,bottom,right},
+}   
+    
+%
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% User Shapes as styles. Note that 'QuadKeys' assure that following keys are in the correct tree.
+%%%
+%%%%%%%%%%%%%%%%%%%
+
+\tikzset{BB/.style={BB shape,QuadKeys,@BB fit set,half base width=\pgf@circ@Rlen}}
+\tikzset{Black Box/.style={BB shape,QuadKeys,@BB fit set,half base width=\pgf@circ@Rlen}}
+\tikzset{Norton/.style={NortonBB shape,QuadKeys,@BB fit set,round sources,half base width=\pgf@circ@Rlen}}
+\tikzset{Thevenin/.style={TheveninBB shape,QuadKeys,@BB fit set,round sources,half base width=\pgf@circ@Rlen}}
+
+\tikzset{Quad compact/.style={Quad shape,QuadKeys,half base width=\pgf@circ@Rlen}}
+\tikzset{Quad/.style={Quad shape,QuadKeys}}
+\tikzset{Quad Z/.style={Quad Z shape,QuadKeys}}
+\tikzset{Quad Y/.style={Quad Y shape,QuadKeys}}
+\tikzset{Quad G/.style={Quad G shape,QuadKeys}}
+\tikzset{Quad H/.style={Quad H shape,QuadKeys}}
+
+\tikzset{PG load line/.style={linear PG load line shape,PGKeys}}
+
+%%
+%% These DO work, but be careful: the node gets a name only if <name> key is defined.
+%%
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% User shapes/keys which can be used in a to[]
+%%%                  These DO work, but be careful: the node gets a name only if <name> key is defined.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\tikzset{ToQuad/.style={to path={node[Quad,outer x fit to={\tikztostart}{\tikztotarget}](\ctikzext@@ValueOf{Keys}{name}){}},QuadKeys}}
+\tikzset{ToQuad Z/.style={to path={node[Quad Z,outer x fit to={\tikztostart}{\tikztotarget}](\ctikzext@@ValueOf{Keys}{name}){}},QuadKeys}}
+\tikzset{ToQuad Y/.style={to path={node[Quad Y,outer x fit to={\tikztostart}{\tikztotarget}](\ctikzext@@ValueOf{Keys}{name}){}},QuadKeys}}
+\tikzset{ToQuad G/.style={to path={node[Quad G,outer x fit to={\tikztostart}{\tikztotarget}](\ctikzext@@ValueOf{Keys}{name}){}},QuadKeys}}
+\tikzset{ToQuad H/.style={to path={node[Quad H,outer x fit to={\tikztostart}{\tikztotarget}](\ctikzext@@ValueOf{Keys}{name}){}},QuadKeys}}
+\tikzset{ToNorton/.style={to path={node[Norton,@BB fit set,y fit to={\tikztostart}{\tikztotarget}](\ctikzext@@ValueOf{Keys}{name}){}},QuadKeys}}
+\tikzset{ToThevenin/.style={to path={node[Thevenin,@BB fit set,y fit to={\tikztostart}{\tikztotarget}](\ctikzext@@ValueOf{Keys}{name}){}},QuadKeys}}
+\tikzset{ToBlack Box/.style={to path={node[Black Box,@BB fit set,y fit to={\tikztostart}{\tikztotarget}](\ctikzext@@ValueOf{Keys}{name}){}},QuadKeys}}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Main keys definition
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfkeys{\ctikzext@@QuadKeysPath,
+    %.unknown/.code={\let\searchname=\pgfkeyscurrentname%
+    %                \pgfkeysalso{/tikz/\searchname=#1}},
+    .search also={\ctikzext@@KeysPath,/tikz},      
+    none/.initial={}, %% this is a 'hack' for Thevenin/Norton ('control variable')   
+    half base width/.initial=2\pgf@circ@Rlen,%
+    base width/.code={%
+        \tikzmath{real \X;
+          \X{tmp} = 0.5*abs(#1);
+        }
+        \pgfkeysalso{\ctikzext@@QuadKeysPath/half base width=\X{tmp}}
+    },
+    height ext/.initial=4\pgf@circ@Rlen/14,%
+    height ext+/.style={height ext={4\pgf@circ@Rlen/14 + #1}},%
+    height/.initial=\pgf@circ@Rlen,%
+    half base height/.initial=10\pgf@circ@Rlen/14,%
+    base height/.code={%
+        \tikzmath{real \X;
+          \X{tmp} = 0.5*abs(#1);
+        }
+        \pgfkeysalso{\ctikzext@@QuadKeysPath/half base height=\X{tmp}}
+    },
+    inner ext/.initial=2\pgf@circ@Rlen/14,%
+    outer ext/.initial=5\pgf@circ@Rlen/14,
+    Y11/.initial=$Y_{11}$, Y12/.initial=$Y_{12}$, Y21/.initial=$Y_{21}$, Y22/.initial=$Y_{22}$,
+    Z11/.initial=$Z_{11}$, Z12/.initial=$Z_{12}$, Z21/.initial=$Z_{21}$, Z22/.initial=$Z_{22}$,
+    H11/.initial=$H_{11}$, H12/.initial=$H_{12}$, H21/.initial=$H_{21}$, H22/.initial=$H_{22}$,
+    G11/.initial=$G_{11}$, G12/.initial=$G_{12}$, G21/.initial=$G_{21}$, G22/.initial=$G_{22}$,
+     I1/.initial=$I_1$,     I2/.initial=$I_2$,     V1/.initial=$V_1$,     V2/.initial=$V_2$,
+     In/.initial=$I_N$,     Yn/.initial=$Y_N$,    Vth/.initial=$V_{th}$, Zth/.initial=$Z_{th}$,
+    @inner marks/.code={\toggletrue{ctikzext@@toggle@innermarks}},
+    inner marks/.style={@inner marks},
+    @outer marks/.code={\toggletrue{ctikzext@@toggle@outermarks}},
+    outer marks/.style={@outer marks},
+    @invert/.code={\toggletrue{ctikzext@@toggle@inverted}},
+    invert/.style={%
+        /tikz/xscale=-1,
+        @invert,
+        \ctikzext@@TPath,
+%        set={south west}{south east},
+%        set={south east}{south west},
+%        set={north west}{north east},
+%        set={north east}{north west},        
+%        set={west}{east},
+%        set={east}{west},        
+        set={bottom left}{bottom right},
+        set={bottom right}{bottom left},
+        set={top left}{top right},
+        set={top right}{top left},        
+        set={left}{right},
+        set={right}{left}, 
+        \ctikzext@@QuadKeysPath,       
+    },
+    compact/.style={half base width=\pgf@circ@Rlen},
+    @alternate/.code={\toggletrue{ctikzext@@toggle@alternate}},
+    alt/.style={@alternate},
+    opt/.style={@alternate},
+    inner x fit to/.code 2 args={%
+        \SearchValueOf{QuadKeys}{inner ext}{\@@innerext}
+        \tikzmath{coordinate \Ctmp; real \dx , \dy;
+          real \X , \d;
+          \Ctmp{from} = (#1);
+          \Ctmp{to} = (#2);
+            \dx{tmp} = (\Ctmpx{to} - \Ctmpx{from})/100;
+            \dy{tmp} = (\Ctmpy{to} - \Ctmpy{from})/100;
+            \X{diff} = 50*sqrt((\dx{tmp})^2 + (\dy{tmp})^2)  + \@@innerext;
+            \d{ang} = atan2(\dy{tmp},\dx{tmp});
+        }
+        \pgfkeysalso{/tikz/rotate=\d{ang},\ctikzext@@QuadKeysPath/half base width=\X{diff}}
+      },
+    outer x fit to/.code 2 args={%
+        \SearchValueOf{QuadKeys}{outer ext}{\@@outerext}
+        \tikzmath{coordinate \Ctmp; real \dx , \dy;
+          real \X , \d;
+          \Ctmp{from} = (#1);
+          \Ctmp{to} = (#2);
+            \dx{tmp} = (\Ctmpx{to} - \Ctmpx{from})/100;
+            \dy{tmp} = (\Ctmpy{to} - \Ctmpy{from})/100;
+            \X{diff} = 50*sqrt((\dx{tmp})^2 + (\dy{tmp})^2)  - \@@outerext;
+            \d{ang} = atan2(\dy{tmp},\dx{tmp});
+        }
+        \pgfkeysalso{/tikz/rotate=\d{ang},\ctikzext@@QuadKeysPath/half base width=\X{diff}}            
+      } ,
+    y fit to/.code 2 args={%
+        \tikzmath{coordinate \Ctmp; real \dx , \dy;
+          real \Y , \d;
+          \Ctmp{from} = (#1);
+          \Ctmp{to} = (#2);
+            \dx{tmp} = (\Ctmpx{to} - \Ctmpx{from})/100;
+            \dy{tmp} = (\Ctmpy{to} - \Ctmpy{from})/100;
+            \Y{diff} = 50*sqrt((\dx{tmp})^2 + (\dy{tmp})^2);
+        }
+        \pgfkeysalso{\ctikzext@@QuadKeysPath/half base height=\Y{diff}}
+      } ,  
+    @BB fit set/.style={%
+        y fit to/.code 2 args={%
+            \tikzmath{coordinate \Ctmp; real \dx , \dy;
+              real \Y , \d;
+              \Ctmp{from} = (##1);
+              \Ctmp{to} = (##2);
+                \dx{tmp} = (\Ctmpx{to} - \Ctmpx{from})/100;
+                \dy{tmp} = (\Ctmpy{to} - \Ctmpy{from})/100;
+                \Y{diff} = 50*sqrt((\dx{tmp})^2 + (\dy{tmp})^2);
+                \d{ang} = atan2(\dy{tmp},\dx{tmp}) + 90;
+            }
+            \pgfkeysalso{/tikz/rotate=\d{ang},\ctikzext@@QuadKeysPath/half base height=\Y{diff}}
+          },
+        inner x fit to/.code 2 args={%
+            \SearchValueOf{QuadKeys}{inner ext}{\@@innerext}
+            \tikzmath{coordinate \Ctmp; real \dx , \dy;
+              real \X , \d;
+              \Ctmp{from} = (##1);
+              \Ctmp{to} = (##2);
+                \dx{tmp} = (\Ctmpx{to} - \Ctmpx{from})/100;
+                \dy{tmp} = (\Ctmpy{to} - \Ctmpy{from})/100;
+                \X{diff} = 50*sqrt((\dx{tmp})^2 + (\dy{tmp})^2)  + \@@innerext;
+                \d{ang} = atan2(\dy{tmp},\dx{tmp});
+            }
+            \pgfkeysalso{/tikz/rotate=\d{ang},\ctikzext@@QuadKeysPath/half base width=\X{diff}}
+          },
+%        outer x fit to/.code 2 args={%
+%            \SearchValueOf{QuadKeys}{outer ext}{\@@outerext}
+%            \tikzmath{coordinate \Ctmp; real \dx , \dy;
+%              real \X , \d;
+%              \Ctmp{from} = (##1);
+%              \Ctmp{to} = (##2);
+%                \dx{tmp} = (\Ctmpx{to} - \Ctmpx{from})/100;
+%                \dy{tmp} = (\Ctmpy{to} - \Ctmpy{from})/100;
+%                \X{diff} = 50*sqrt((\dx{tmp})^2 + (\dy{tmp})^2)  - \@@outerext;
+%                \d{ang} = atan2(\dy{tmp},\dx{tmp});
+%            }
+%            \pgfkeysalso{/tikz/rotate=\d{ang},\ctikzext@@QuadKeysPath/half base width=\X{diff}}            
+%          } ,
+      }
+}
+
+\pgfkeys{\ctikzext@@QuadKeysPath,
+    setlabelscmd/.style={%
+        #1 N anchor/.style={}, 
+        #1 T anchor/.style={}, 
+        #1 label pos/.style 2 args={#1 N anchor/.style={\ctikzext@@TPath,##1=####1}, #1 T anchor/.style={\ctikzext@@TPath,##2=####1},  },
+        },
+    setlabelscmd/.list={Z11,Z12,Z21,Z22,Y11,Y12,Y21,Y22,G11,G12,G21,G22,H11,H12,H21,H22,In,Yn,Vth,Zth},
+    defaults/.style={
+        Z11 label pos={south west}{top left},
+        Z12 label pos={south east}{top left},
+        Z21 label pos={north west}{bottom right},
+        Z22 label pos={south east}{top right},
+%       
+        Y11 label pos={south east}{top left},
+        Y12 label pos={south east}{top left},
+        Y21 label pos={north west}{bottom right},
+        Y22 label pos={north west}{bottom right},
+%       
+        G11 label pos={south east}{top left},
+        G12 label pos={south east}{top left},
+        G21 label pos={north west}{bottom right},
+        G22 label pos={south east}{top right},
+%
+        H11 label pos={south west}{top left},
+        H12 label pos={south east}{top left},
+        H21 label pos={north west}{bottom right},
+        H22 label pos={north west}{bottom right},
+        %
+        Yn label pos={south east}{top left},
+        In label pos={south east}{top left},
+        %
+        Zth label pos={south west}{top left},
+        Vth label pos={south east}{top left},
+        %
+    },
+    defaults,
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Coordinates for a Quadripole
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@QuadPoints}{
+    \SearchValueOf{QuadKeys}{half base width}{\@@halfbasewidth}
+    \SearchValueOf{QuadKeys}{half base height}{\@@halfbaseheight}
+    \SearchValueOf{QuadKeys}{height ext}{\@@heightext}
+    \SearchValueOf{QuadKeys}{outer ext}{\@@outerext}
+    \SearchValueOf{QuadKeys}{inner ext}{\@@innerext}
+	\tikzmath{
+		real \x,\y;
+    \x{center}=0;
+    \y{center}=0;
+		\x{right}=0 + \@@halfbasewidth;
+		\y{top}=0 +( \@@halfbaseheight +  \@@heightext);
+		%
+		\x{left}=0 - \@@halfbasewidth;
+		\y{bottom}=0 -( \@@halfbaseheight +  \@@heightext);
+		%
+		\y{innerbottom}=0 - \@@halfbaseheight;
+		\y{innertop}=0 + \@@halfbaseheight;
+		%
+		\y{outerbottom}=\y{bottom} - 0.5*\@@outerext;
+		\y{outertop}=\y{top} + 0.5*\@@outerext;
+		%
+		\x{outerleft}=\x{left} - \@@outerext;
+		\x{innerleft}=\x{left} + \@@innerext;
+		%
+		\x{outerright}=\x{right} + \@@outerext;
+		\x{innerright}=\x{right} - \@@innerext;
+    %
+		\x{refC}=0 - 0.4*\@@halfbasewidth;
+    \x{refB}=(\x{innerleft}+\x{refC})/2; %center point for Res shape
+    \x{refA}=(2*\x{innerleft}+\x{refC})/3; %'center' point for Y.Res shape
+		%
+		\y{Tbottom}=\y{bottom} + 0.65ex;
+		\x{Tinnerleft}=\x{innerleft} ;
+		\y{Tinnerbottom}=\y{innerbottom} + 0.95ex;
+		\x{Tinnerright}=\x{innerright};
+    \x{Tcenter}=0;
+    %
+		\y{Ttop}=\y{top} - 0.65ex;
+		\y{Tinnertop}=\y{innertop} - 0.95ex;
+	}
+}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% if <key value>, #1, is zero, #2 is executed, otherwise #3.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@CondDraw}[3]{
+	\IfDecimal{\ctikzext@@ValueOf{QuadKeys}{#1}}{
+		\ifnumequal{0+\ctikzext@@ValueOf{QuadKeys}{#1}}{0}{%
+			#2
+		}{%
+			#3
+		}
+	}{#3}
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% if <key value>, #1, is zero, a in place line is drawn, otherwise shape #2 is draw.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@Zdraw}[5]{
+  \ctikzext@@CondDraw{#1}{%
+		\pgfnode{Shadow #2}{#3}{}{\tikz@fig@name-#1}{\pgfusepath{discard}}
+		\pgfpathmoveto{\pgfpointanchor{\tikz@fig@name-#1}{#4}}
+		\pgfpathlineto{\pgfpointanchor{\tikz@fig@name-#1}{#5}}
+		\pgfusepath{stroke}
+  }{%
+		\pgfnode{#2}{#3}{}{\tikz@fig@name-#1}{\pgfusepath{stroke}}
+  }
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Draws a Z side (impedance in series with a Voltage source
+%%%
+%%%%%%%%%%%%%%%%%%%
+
+\newtoggle{ctikzext@@toggle@auxA}
+\newtoggle{ctikzext@@toggle@auxB}
+%
+% #1->z11/z22 (res)
+% #2->z12/z21 (vsource)
+% #3 -> 'control source' I1/I2/V1/V2
+% #4->"-" minus signal !!! for B side
+%
+\newcommand{\ctikzext@@Zside}[4]{
+		\togglefalse{ctikzext@@toggle@auxA}
+		\IfDecimal{\ctikzext@@ValueOf{QuadKeys}{#1}}{
+			\ifnumequal{0+\ctikzext@@ValueOf{QuadKeys}{#1}}{0}{
+			\toggletrue{ctikzext@@toggle@auxA}}
+			}{}{
+		}
+		\togglefalse{ctikzext@@toggle@auxB}
+		\IfDecimal{\ctikzext@@ValueOf{QuadKeys}{#2}}{
+			\ifnumequal{0+\ctikzext@@ValueOf{QuadKeys}{#2}}{0}{
+			\toggletrue{ctikzext@@toggle@auxB}}
+			}{}{
+		}
+		\ifboolexpr{togl{ctikzext@@toggle@alternate} and ( togl{ctikzext@@toggle@auxA} or togl{ctikzext@@toggle@auxB})}{
+			\iftoggle{ctikzext@@toggle@auxA}{
+				{
+					\pgftransformshift{\pgfpoint{#4\x{refB}}{0}}
+					\ctikzext@@Zdraw{#2}{Vsource shape}{center}{north}{south}
+				}
+				{
+					\pgfpathmoveto{\pgfpoint{#4\x{innerleft}}{\y{innertop}}}
+					\pgfpathlineto{\pgfpoint{#4\x{refB}}{\y{innertop}}}
+					\pgfpathlineto{\pgfpointanchor{\tikz@fig@name-#2}{north}}
+					\pgfpathmoveto{\pgfpointanchor{\tikz@fig@name-#2}{south}}
+					\pgfpathlineto{\pgfpoint{#4\x{refB}}{\y{innerbottom}}}
+					\pgfpathlineto{\pgfpoint{#4\x{innerleft}}{\y{innerbottom}}}
+					\pgfusepath{stroke}
+				}
+			}{
+				{
+					\pgftransformshift{\pgfpoint{#4\x{refB}}{0}}
+%					\pgftransformrotate{90}  %%% was #490
+%					\ctikzext@@Zdraw{#1}{H Res shape}{center}{west}{east}
+					\ctikzext@@Zdraw{#1}{V Res shape}{center}{north}{south}
+          \pgfusepath{stroke}
+				}
+				{
+					\pgfpathmoveto{\pgfpoint{#4\x{innerleft}}{\y{innertop}}}
+					\pgfpathlineto{\pgfpoint{#4\x{refB}}{\y{innertop}}}
+%					\pgfpathlineto{\pgfpointanchor{\tikz@fig@name-#1}{east}}
+%					\pgfpathmoveto{\pgfpointanchor{\tikz@fig@name-#1}{west}}
+					\pgfpathlineto{\pgfpointanchor{\tikz@fig@name-#1}{north}}
+					\pgfpathmoveto{\pgfpointanchor{\tikz@fig@name-#1}{south}}
+					\pgfpathlineto{\pgfpoint{#4\x{refB}}{\y{innerbottom}}}
+					\pgfpathlineto{\pgfpoint{#4\x{innerleft}}{\y{innerbottom}}}
+					\pgfusepath{stroke}
+				}
+			}
+		}{
+			{
+        \pgftransformshift{\pgfpoint{#4\x{refB}}{\y{innertop}}}
+        \ctikzext@@Zdraw{#1}{H Res shape}{center}{west}{east}
+			}
+			{
+				\pgftransformshift{\pgfpoint{#4\x{refC}}{0}}
+				\ctikzext@@Zdraw{#2}{Vsource shape}{center}{north}{south}
+			}
+			{
+        \pgfpathmoveto{\pgfpoint{#4\x{innerleft}}{\y{innertop}}}
+        \ifnumequal{#41}{-1}{%
+          \pgfpathlineto{\pgfpointanchor{\tikz@fig@name-#1}{east}}
+  				\pgfpathmoveto{\pgfpointanchor{\tikz@fig@name-#1}{west}}
+        }{%
+          \pgfpathlineto{\pgfpointanchor{\tikz@fig@name-#1}{west}}
+  				\pgfpathmoveto{\pgfpointanchor{\tikz@fig@name-#1}{east}}
+        }
+				\pgfpathlineto{\pgfpoint{#4\x{refC}}{\y{innertop}}}
+				\pgfpathlineto{\pgfpointanchor{\tikz@fig@name-#2}{north}}
+				\pgfpathmoveto{\pgfpointanchor{\tikz@fig@name-#2}{south}}
+				\pgfpathlineto{\pgfpoint{#4\x{refC}}{\y{innerbottom}}}
+				\pgfpathlineto{\pgfpoint{#4\x{innerleft}}{\y{innerbottom}}}
+				\pgfusepath{stroke}
+			}
+		}
+%
+    \ctikzext@@QuadGetAnchor{#2 N anchor}{ctikzext@@NanchorB}
+    \ctikzext@@QuadGetAnchor{#1 T anchor}{ctikzext@@TanchorA}
+    \ctikzext@@QuadGetAnchor{#2 T anchor}{ctikzext@@TanchorB}
+ 		\ifboolexpr{togl{ctikzext@@toggle@alternate} and togl{ctikzext@@toggle@auxB}}{%
+      \ctikzext@@QuadGetAnchor{#1 N anchor}{ctikzext@@NanchorAx}
+      \ctikzext@@AutoRotateAnchor{\ctikzext@@NanchorAx}{ctikzext@@NanchorA}
+    }{%
+      \ctikzext@@QuadGetAnchor{#1 N anchor}{ctikzext@@NanchorA}
+    }
+    {       
+        \SearchValueOf{QuadKeys}{#1}{\@@valA}
+        \SearchValueOf{QuadKeys}{#2}{\@@valB}
+        \SearchValueOf{QuadKeys}{#3}{\@@valC}
+    	\pgftransformresetnontranslations
+    	\ctikzext@@CondDraw{#1}{}{\pgftext[\ctikzext@@TanchorA,at={\pgfpointanchor{\tikz@fig@name-#1}{\ctikzext@@NanchorA}}]{\@@valA}}
+    	\ctikzext@@CondDraw{#2}{}{\pgftext[\ctikzext@@TanchorB,at={\pgfpointanchor{\tikz@fig@name-#2}{\ctikzext@@NanchorB}}]{\@@valB\@@valC}}
+    }
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% if <key value>, #1, is zero, nothing is drawn, otherwise shape #2 is draw.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@Ydraw}[3]{
+  \ctikzext@@CondDraw{#1}{%
+    \pgfnode{Shadow #2}{#3}{}{\tikz@fig@name-#1}{\pgfusepath{discard}}
+  }{%
+    \pgfnode{#2}{#3}{}{\tikz@fig@name-#1}{\pgfusepath{stroke}}
+  }
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Draws a Y side (impedance in paralel with a Currente source
+%%%
+%%%%%%%%%%%%%%%%%%%
+
+% #1 Isource UP/DWN
+% #2->y11/y22 (res)
+% #3->y12/y21 (isource)
+% #4 -> 'control source' I1/I2/V1/V2
+% #5->"-" minus signal !!! for B side
+%
+\newcommand{\ctikzext@@Yside}[5][IsourceDOWN shape]{
+		\togglefalse{ctikzext@@toggle@auxA}
+		\IfDecimal{\ctikzext@@ValueOf{QuadKeys}{#2}}{
+			\ifnumequal{0+\ctikzext@@ValueOf{QuadKeys}{#2}}{0}{
+				\toggletrue{ctikzext@@toggle@auxA}}
+			}{}{
+		}
+		\togglefalse{ctikzext@@toggle@auxB}
+		\IfDecimal{\ctikzext@@ValueOf{QuadKeys}{#3}}{
+			\ifnumequal{0+\ctikzext@@ValueOf{QuadKeys}{#3}}{0}{
+				\toggletrue{ctikzext@@toggle@auxB}}
+			}{}{
+		}
+		\ifboolexpr{togl{ctikzext@@toggle@alternate} and ( togl{ctikzext@@toggle@auxA} or togl{ctikzext@@toggle@auxB})}{
+			\tikzmath{
+				\x{20} = \x{refB};
+				\x{21} = \x{refB};
+			}
+		}{
+			\tikzmath{
+				\x{20} = \x{refA};
+				\x{21} = \x{refC};
+			}
+		}
+%
+		{
+			\pgftransformshift{\pgfpoint{#5\x{20}}{0}}
+%			\pgftransformrotate{90}  %%% was {#590}
+%			\ctikzext@@Ydraw{#2}{H Res shape}{center}
+			\ctikzext@@Ydraw{#2}{V Res shape}{center}
+		}
+		\ctikzext@@CondDraw{#2}{}{
+			\pgfpathmoveto{\pgfpoint{#5\x{innerleft}}{\y{innertop}}}
+			\pgfpathlineto{\pgfpoint{#5\x{20}}{\y{innertop}}}
+%			\pgfpathlineto{\pgfpointanchor{\tikz@fig@name-#2}{east}}
+%			\pgfpathmoveto{\pgfpointanchor{\tikz@fig@name-#2}{west}}
+			\pgfpathlineto{\pgfpointanchor{\tikz@fig@name-#2}{north}}
+			\pgfpathmoveto{\pgfpointanchor{\tikz@fig@name-#2}{south}}
+			\pgfpathlineto{\pgfpoint{#5\x{20}}{\y{innerbottom}}}
+			\pgfpathlineto{\pgfpoint{#5\x{innerleft}}{\y{innerbottom}}}
+			\pgfusepath{stroke}
+		}
+%
+    {
+			\pgftransformshift{\pgfpoint{#5\x{21}}{0}}
+      \ctikzext@@Ydraw{#3}{#1}{center}
+    }
+		\ctikzext@@CondDraw{#3}{}{
+			\pgfpathmoveto{\pgfpoint{#5\x{innerleft}}{\y{innertop}}}
+			\pgfpathlineto{\pgfpoint{#5\x{refA}}{\y{innertop}}}
+			\pgfpathlineto{\pgfpoint{#5\x{21}}{\y{innertop}}}
+			\pgfpathlineto{\pgfpointanchor{\tikz@fig@name-#3}{north}}
+			\pgfpathmoveto{\pgfpointanchor{\tikz@fig@name-#3}{south}}
+			\pgfpathlineto{\pgfpoint{#5\x{21}}{\y{innerbottom}}}
+			\pgfpathlineto{\pgfpoint{#5\x{innerleft}}{\y{innerbottom}}}
+			\pgfusepath{stroke}
+		}
+    %\ctikzext@@QuadGetAnchor{#2 N anchor}{ctikzext@@NanchorAx}
+    \ctikzext@@QuadGetAnchor{#2 N anchor}{ctikzext@@NanchorA}
+    \ctikzext@@QuadGetAnchor{#3 N anchor}{ctikzext@@NanchorB}
+    \ctikzext@@QuadGetAnchor{#2 T anchor}{ctikzext@@TanchorA}
+    \ctikzext@@QuadGetAnchor{#3 T anchor}{ctikzext@@TanchorB}
+    %\ctikzext@@RotateAnchor{\ctikzext@@NanchorAx}{ctikzext@@NanchorA}
+    {
+        \SearchValueOf{QuadKeys}{#2}{\@@valA}
+        \SearchValueOf{QuadKeys}{#3}{\@@valB}
+        \SearchValueOf{QuadKeys}{#4}{\@@valC}    
+    	\pgftransformresetnontranslations
+    	\ctikzext@@CondDraw{#2}{}{\pgftext[\ctikzext@@TanchorA,at={\pgfpointanchor{\tikz@fig@name-#2}{\ctikzext@@NanchorA}}]{\@@valA}}
+    	\ctikzext@@CondDraw{#3}{}{\pgftext[\ctikzext@@TanchorB,at={\pgfpointanchor{\tikz@fig@name-#3}{\ctikzext@@NanchorB}}]{\@@valB\@@valC}}
+    }
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Coordinates for a Horizontal Resistor
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@HResPoints}{
+        \SearchValueOf{QuadKeys}{outer sep}{\@@outersep}
+		\tikzmath{
+			real \x,\y;
+      \x{center}=0;
+      \y{center}=0;
+      %
+      \x{left}=-\ctikzvalof{bipoles/resistor/width}\pgf@circ@Rlen/2;
+      \x{right}=\ctikzvalof{bipoles/resistor/width}\pgf@circ@Rlen/2;
+      %
+			\y{top}=+\ctikzvalof{bipoles/resistor/height}\pgf@circ@Rlen/2;
+			\y{bottom}=-\ctikzvalof{bipoles/resistor/height}\pgf@circ@Rlen/2;
+      %
+      \x{step}=\ctikzvalof{bipoles/resistor/width}\pgf@circ@Rlen/12;
+      \y{step}=\ctikzvalof{bipoles/resistor/height}\pgf@circ@Rlen/2;
+      %
+      \x{Tcenter}=0;
+      \y{Tcenter}=0;
+      %
+			\y{Ttop}=+\ctikzvalof{bipoles/resistor/height}\pgf@circ@Rlen/2 +\@@outersep;
+			\y{Tbottom}=-\y{Ttop};
+			%
+			\x{Tright}=+\ctikzvalof{bipoles/resistor/width}\pgf@circ@Rlen/2 +\@@outersep;
+			\x{Tleft}=-\x{Tright};
+      %
+      \y{Ctop}=\y{Ttop};
+      \y{Cbottom}=\y{Tbottom};
+      %
+      \x{Cleft}=\x{left};
+      \x{Cright}=\x{right};
+		}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Coordinates for a Vertical Resistor
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@VResPoints}{
+        \SearchValueOf{QuadKeys}{outer sep}{\@@outersep}
+		\tikzmath{
+			real \x,\y;
+      \x{center}=0;
+      \y{center}=0;
+      %
+      \y{bottom}=-\ctikzvalof{bipoles/resistor/width}\pgf@circ@Rlen/2;
+      \y{top}=\ctikzvalof{bipoles/resistor/width}\pgf@circ@Rlen/2;
+      %
+			\x{right}=+\ctikzvalof{bipoles/resistor/height}\pgf@circ@Rlen/2;
+			\x{left}=-\ctikzvalof{bipoles/resistor/height}\pgf@circ@Rlen/2;
+%
+      \x{step}=\ctikzvalof{bipoles/resistor/width}\pgf@circ@Rlen/12;
+      \y{step}=\ctikzvalof{bipoles/resistor/height}\pgf@circ@Rlen/2;
+      %
+      \x{Tcenter}=0;
+      \y{Tcenter}=0;
+      %
+			\y{Ttop}=+\ctikzvalof{bipoles/resistor/width}\pgf@circ@Rlen/2 +\@@outersep;
+			\y{Tbottom}=-\y{Ttop};
+			%
+			\x{Tright}=+\ctikzvalof{bipoles/resistor/height}\pgf@circ@Rlen/2 +\@@outersep;
+			\x{Tleft}=-\x{Tright};
+      %
+      \y{Ctop}=\y{top};
+      \y{Cbottom}=\y{bottom};
+      %
+      \x{Cleft}=\x{Tleft};
+      \x{Cright}=\x{Tright};
+		}
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Base Anchors for a Resistor like shape
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@ResBaseAnchors}[1]{
+	\anchor{center}{\centerpoint}
+	\savedanchor\centerpoint{%
+    #1
+    \pgfpoint{\x{center}}{\y{center}}
+  }
+	\anchor{text}{
+    #1
+    \pgfpoint{\x{Tcenter}}{\y{Ttop}}
+	}
+	\anchor{west}{\west}
+	\savedanchor{\west}{%
+    #1
+    \pgfpoint{\x{Cleft}}{\y{center}}
+	}
+	\anchor{east}{\east}
+	\savedanchor{\east}{%
+    #1
+    \pgfpoint{\x{Cright}}{\y{center}}
+	}
+	\anchor{north}{\north}
+	\savedanchor{\north}{%
+    #1
+    \pgfpoint{\x{center}}{\y{Ctop}}
+	}
+	\anchor{south}{\south}
+	\savedanchor{\south}{%
+    #1
+    \pgfpoint{\x{center}}{\y{Cbottom}}
+	}
+	\anchor{north west}{\northwest}%
+	\savedanchor{\northwest}{%
+    #1
+    \pgfpoint{\x{Tleft}}{\y{Ttop}}
+	}
+	\anchor{north east}{\northeast}%
+	\savedanchor{\northeast}{%
+    #1
+    \pgfpoint{\x{Tright}}{\y{Ttop}}
+	}
+	\anchor{south west}{\southwest}%
+	\savedanchor{\southwest}{%
+    #1
+    \pgfpoint{\x{Tleft}}{\y{Tbottom}}
+	}
+	\anchor{south east}{\southeast}%
+	\savedanchor{\southeast}{%
+    #1
+    \pgfpoint{\x{Tright}}{\y{Tbottom}}
+	}
+}
+
+\newcommand{\ctikzext@@DrawRes}[1]{
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Resistor shape. either zig-zag or generic/european
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{H Res shape}{
+  \ctikzext@@ResBaseAnchors{\ctikzext@@HResPoints}
+	\behindbackgroundpath{
+    \ctikzext@@HResPoints
+    \pgfsetxvec{\pgfpoint{\x{step}}{0}}
+		\pgfsetyvec{\pgfpoint{0}{\y{step}}}
+  \begin{pgfscope}
+    \SearchValueOf{QuadKeys}{thickness}{\@@tmpthickness}
+    \pgfsetlinewidth{\@@tmpthickness\pgflinewidth}
+    \pgfsetbeveljoin
+		\iftoggle{ctikzext@@toggle@generic}{
+			\pgfpathmoveto{\pgfpointxy{-6}{-1}}
+			\pgfpathlineto{\pgfpointxy{-6}{1}}
+			\pgfpathlineto{\pgfpointxy{6}{1}}
+			\pgfpathlineto{\pgfpointxy{6}{-1}}
+			\pgfpathlineto{\pgfpointxy{-6}{-1}}
+		}{
+			\pgfpathmoveto{\pgfpointxy{-6}{0}}
+			\pgfpathlineto{\pgfpointxy{-5}{1}}
+			\pgfpathlineto{\pgfpointxy{-3}{-1}}
+			\pgfpathlineto{\pgfpointxy{-1}{1}}
+			\pgfpathlineto{\pgfpointxy{1}{-1}}
+			\pgfpathlineto{\pgfpointxy{3}{1}}
+			\pgfpathlineto{\pgfpointxy{5}{-1}}
+			\pgfpathlineto{\pgfpointxy{6}{0}}
+		}
+    \pgfusepath{stroke}
+  \end{pgfscope}
+	}
+	\backgroundpath{}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Shadow H Res shape => do nothing but defines anchors
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Shadow H Res shape}{
+	\inheritsavedanchors[from=H Res shape]
+	\foreach \anchor in {north,north west,north east,center,west,east,
+	,south,south west,south east,text}{%
+		\inheritanchor[from=H Res shape]{\anchor}}
+	\backgroundpath{}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Resistor shape. either zig-zag or generic/european
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{V Res shape}{
+  \ctikzext@@ResBaseAnchors{\ctikzext@@VResPoints}
+	\behindbackgroundpath{
+    \ctikzext@@HResPoints
+    \pgfsetxvec{\pgfpoint{\x{step}}{0}}
+		\pgfsetyvec{\pgfpoint{0}{\y{step}}}
+  \begin{pgfscope}
+    \SearchValueOf{QuadKeys}{thickness}{\@@tmpthickness}
+    \pgfsetlinewidth{\@@tmpthickness\pgflinewidth}
+    \pgfsetbeveljoin
+    \pgftransformrotate{90}
+		\iftoggle{ctikzext@@toggle@generic}{
+			\pgfpathmoveto{\pgfpointxy{-6}{-1}}
+			\pgfpathlineto{\pgfpointxy{-6}{1}}
+			\pgfpathlineto{\pgfpointxy{6}{1}}
+			\pgfpathlineto{\pgfpointxy{6}{-1}}
+			\pgfpathlineto{\pgfpointxy{-6}{-1}}
+		}{
+			\pgfpathmoveto{\pgfpointxy{-6}{0}}
+			\pgfpathlineto{\pgfpointxy{-5}{1}}
+			\pgfpathlineto{\pgfpointxy{-3}{-1}}
+			\pgfpathlineto{\pgfpointxy{-1}{1}}
+			\pgfpathlineto{\pgfpointxy{1}{-1}}
+			\pgfpathlineto{\pgfpointxy{3}{1}}
+			\pgfpathlineto{\pgfpointxy{5}{-1}}
+			\pgfpathlineto{\pgfpointxy{6}{0}}
+		}
+    \pgfusepath{stroke}
+  \end{pgfscope}
+	}
+	\backgroundpath{}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Shadow V Res shape => do nothing but defines anchors
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Shadow V Res shape}{
+	\inheritsavedanchors[from=V Res shape]
+	\foreach \anchor in {north,north west,north east,center,west,east,
+	,south,south west,south east,text}{%
+		\inheritanchor[from=V Res shape]{\anchor}}
+	\backgroundpath{}
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% a simple arrow tip, can be a simple triangle or a bezier based one.
+%%%          back of the tip at the 'starting point'
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@arrowtipat}[3]{
+  { 
+    \pgftransformshift{\pgfpoint{#2}{#3}}
+    \pgftransformscale{\ctikzext@@ValueOf{Keys}{tip len}}
+    \pgftransformrotate{#1}
+    \iftoggle{ctikzext@@toggle@beziertip}{   
+        %% bezier version  
+        \pgfsetroundcap\pgfsetbeveljoin
+        \pgfpathmoveto{\pgfpoint{1}{0}}
+        \pgfpathcurveto{\pgfpoint{0.3}{0.125}}{\pgfpoint{0.3}{0.125}}{\pgfpoint{0}{0.4}}
+        \pgfpathcurveto{\pgfpoint{0.15}{0}}{\pgfpoint{0.15}{0}}{\pgfpoint{0}{-0.4}}
+        \pgfpathcurveto{\pgfpoint{0.3}{-0.125}}{\pgfpoint{0.3}{-0.125}}{\pgfpoint{1}{0}}
+    }{  %% simple triangle version
+        \pgfsetroundcap
+        \pgfpathmoveto{\pgfpoint{1}{0}}
+        \pgfpathlineto{\pgfpoint{0}{0.45}}
+        \pgfpathlineto{\pgfpoint{0}{-0.45}}
+        \pgfpathlineto{\pgfpoint{1}{0}}
+    }
+  }
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% a simple, centered at point of reference, 'plus' sign... it could be a \pgftext... but, that way it is more controlable.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@plussignat}[3][\ctikzext@@ValueOf{Keys}{plussign len}]{%
+  {
+			\pgftransformshift{\pgfpoint{#2}{#3}}
+      \pgftransformscale{#1}
+			\pgfpathmoveto{\pgfpoint{-1}{0}}
+			\pgfpathlineto{\pgfpoint{1}{0}}
+			\pgfpathmoveto{\pgfpoint{0}{-1}}
+			\pgfpathlineto{\pgfpoint{0}{1}}    
+  }
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% a simple, centered at point of reference, 'minus' sign... it could be a \pgftext... but, that way it is more controlable.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@minussignat}[3][\ctikzext@@ValueOf{Keys}{minussign len}]{%
+  {
+			\pgftransformshift{\pgfpoint{#2}{#3}}
+      \pgftransformscale{#1}
+			\pgfpathmoveto{\pgfpoint{-1}{0}}
+			\pgfpathlineto{\pgfpoint{1}{0}}
+  }
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Coordinates for a (base) Source
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@SourcePoints}{
+  \SearchValueOf{QuadKeys}{source radius}{\@@sourceradius}
+  \SearchValueOf{QuadKeys}{outer sep}{\@@outersep}
+	\tikzmath{
+		real \x,\y;
+    \x{center}=0;
+    \y{center}=0;
+    \x{left}=-\@@sourceradius;
+    \x{right}=\@@sourceradius;
+		\y{top}=\@@sourceradius;
+		\y{bottom}=-\@@sourceradius;
+    %
+    \x{Tcenter}=0;
+    \y{Tcenter}=0;
+		\y{Tmiddletop}=+cos(45)*(\@@sourceradius+\@@outersep);
+		\y{Tmiddlebottom}=-\y{Tmiddletop};
+		%
+		\x{Tmiddleright}=+cos(45)*(\@@sourceradius+\@@outersep);
+		\x{Tmiddleleft}=-\x{Tmiddleright};
+	}
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Base Anchors for a Source like shape
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@SourceBaseAnchors}[1]{
+	\savedanchor\centerpoint{
+		\pgfpoint{0}{0}
+	}
+	\anchor{center}{\centerpoint}
+	\anchor{text}{\text}%
+	\savedanchor{\text}{%
+    #1
+    \pgfpoint{\x{Tmiddleright}}{\y{Tmiddletop}}
+	}
+	\anchor{west}{\west}%
+	\savedanchor{\west}{%
+    #1
+    \pgfpoint{\x{left}}{\y{center}}
+	}
+	\anchor{east}{\east}%
+	\savedanchor{\east}{%
+    #1
+    \pgfpoint{\x{right}}{\y{center}}
+	}
+	\anchor{north}{\north}%
+	\savedanchor{\north}{%
+    #1
+    \pgfpoint{\x{center}}{\y{top}}
+	}
+	\anchor{south}{\south}%
+	\savedanchor{\south}{%
+    #1
+    \pgfpoint{\x{center}}{\y{bottom}}
+	}
+	\anchor{north west}{\northwest}%
+	\savedanchor{\northwest}{%
+    #1
+    \pgfpoint{\x{Tmiddleleft}}{\y{Tmiddletop}}
+	}
+	\anchor{north east}{\northeast}%
+	\savedanchor{\northeast}{%
+    #1
+    \pgfpoint{\x{Tmiddleright}}{\y{Tmiddletop}}
+	}
+	\anchor{south west}{\southwest}%
+	\savedanchor{\southwest}{%
+    #1
+    \pgfpoint{\x{Tmiddleleft}}{\y{Tmiddlebottom}}
+	}
+	\anchor{south east}{\southeast}%
+	\savedanchor{\southeast}{%
+    #1
+    \pgfpoint{\x{Tmiddleright}}{\y{Tmiddlebottom}}
+	}
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Base shape for a source like shape
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Base source shape}{
+  \ctikzext@@SourceBaseAnchors{\ctikzext@@SourcePoints}
+	\backgroundpath{}
+	}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Voltage source shape. either round or diamond
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Vsource shape}{
+	\inheritsavedanchors[from=Base source shape]
+	\foreach \anchor in {north,north west,north east,center,west,east,
+	,south,south west,south east,text}{%
+		\inheritanchor[from=Base source shape]{\anchor}}
+	\backgroundpath{
+      \SearchValueOf{QuadKeys}{thickness}{\@@tmpthickness}
+      \SearchValueOf{QuadKeys}{source radius}{\@@sourceradius}
+      \SearchValueOf{QuadKeys}{minussign len}{\@@minussignlen}
+      \SearchValueOf{QuadKeys}{plussign len}{\@@plussignlen}
+		\pgfsetroundcap
+    \begin{pgfscope}
+      \ctikzext@@SourcePoints
+      \pgfsetbeveljoin
+      \pgfsetlinewidth{\@@tmpthickness\pgflinewidth}
+      \iftoggle{ctikzext@@toggle@roundsources}{
+     		\pgfpathcircle{\pgfpoint{0}{0}}{\@@sourceradius}
+      }{
+        \pgfpathmoveto{\pgfpoint{\x{center}}{\y{top}}}
+        \pgfpathlineto{\pgfpoint{\x{right}}{\y{center}}}
+        \pgfpathlineto{\pgfpoint{\x{center}}{\y{bottom}}}
+        \pgfpathlineto{\pgfpoint{\x{left}}{\y{center}}}
+        \pgfpathlineto{\pgfpoint{\x{center}}{\y{top}}}
+      }
+      \pgfusepath{stroke}
+    \end{pgfscope}
+    \ctikzext@@minussignat[\@@minussignlen]{0}{-0.4*\@@sourceradius}
+    \ctikzext@@plussignat[\@@plussignlen]{0}{0.4*\@@sourceradius}
+    \pgfusepath{stroke}
+	}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Shadow Vsource shape => do nothing but defines anchors
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Shadow Vsource shape}{
+	\inheritsavedanchors[from=Base source shape]
+	\foreach \anchor in {north,north west,north east,center,west,east,
+	,south,south west,south east,text}{%
+		\inheritanchor[from=Base source shape]{\anchor}}
+	\backgroundpath{}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% currente source shape, arrow pointing down. either round or diamond
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{IsourceDOWN shape}{
+	\inheritsavedanchors[from=Base source shape]
+	\foreach \anchor in {north,north west,north east,center,west,east,
+	,south,south west,south east,text}{%
+		\inheritanchor[from=Base source shape]{\anchor}}
+	\backgroundpath{
+      \SearchValueOf{QuadKeys}{thickness}{\@@tmpthickness}
+      \SearchValueOf{QuadKeys}{source radius}{\@@sourceradius}
+      \SearchValueOf{QuadKeys}{tip len}{\@@tiplen}
+		\begin{pgfscope}
+      \ctikzext@@SourcePoints
+      \pgfsetlinewidth{\@@tmpthickness\pgflinewidth}
+  		\pgfsetroundcap
+      \iftoggle{ctikzext@@toggle@roundsources}{
+     		\pgfpathcircle{\pgfpoint{0}{0}}{\@@sourceradius}
+      }{
+        \pgfpathmoveto{\pgfpoint{\x{center}}{\y{top}}}
+        \pgfpathlineto{\pgfpoint{\x{right}}{\y{center}}}
+        \pgfpathlineto{\pgfpoint{\x{center}}{\y{bottom}}}
+        \pgfpathlineto{\pgfpoint{\x{left}}{\y{center}}}
+        \pgfpathlineto{\pgfpoint{\x{center}}{\y{top}}}
+      }
+  		\pgfpathmoveto{\pgfpoint{0}{0.7*\@@sourceradius}}
+  		\pgfpathlineto{\pgfpoint{0}{-0.7*\@@sourceradius}}
+  %
+      \pgfusepath{stroke}
+      \ctikzext@@arrowtipat{-90}{0}{-0.7*\@@sourceradius+\@@tiplen}
+      \pgfusepath{stroke,fill}
+		\end{pgfscope}
+	}}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Shadow IsourceDOWN shape => do nothing but defines anchors
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Shadow IsourceDOWN shape}{
+	\inheritsavedanchors[from=Base source shape]
+	\foreach \anchor in {north,north west,north east,center,west,east,
+	,south,south west,south east,text}{%
+		\inheritanchor[from=Base source shape]{\anchor}}
+	\backgroundpath{}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% currente source shape, arrow pointing up. either round or diamond
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{IsourceUP shape}{
+	\inheritsavedanchors[from=Base source shape]
+	\foreach \anchor in {north,north west,north east,center,west,east,
+	,south,south west,south east,text}{%
+		\inheritanchor[from=Base source shape]{\anchor}}
+	\backgroundpath{
+      \SearchValueOf{QuadKeys}{thickness}{\@@tmpthickness}
+      \SearchValueOf{QuadKeys}{source radius}{\@@sourceradius}
+      \SearchValueOf{QuadKeys}{tip len}{\@@tiplen}
+		\begin{pgfscope}
+      \ctikzext@@SourcePoints
+      \pgfsetlinewidth{\@@tmpthickness\pgflinewidth}
+  		\pgfsetroundcap
+      \iftoggle{ctikzext@@toggle@roundsources}{
+     		\pgfpathcircle{\pgfpoint{0}{0}}{\@@sourceradius}
+      }{
+        \pgfpathmoveto{\pgfpoint{\x{center}}{\y{top}}}
+        \pgfpathlineto{\pgfpoint{\x{right}}{\y{center}}}
+        \pgfpathlineto{\pgfpoint{\x{center}}{\y{bottom}}}
+        \pgfpathlineto{\pgfpoint{\x{left}}{\y{center}}}
+        \pgfpathlineto{\pgfpoint{\x{center}}{\y{top}}}
+      }
+  		\pgfpathmoveto{\pgfpoint{0}{0.7*\@@sourceradius}}
+  		\pgfpathlineto{\pgfpoint{0}{-0.7*\@@sourceradius}}
+  %
+      \pgfusepath{stroke}
+      \ctikzext@@arrowtipat{90}{0}{0.7*\@@sourceradius-\@@tiplen}
+      \pgfusepath{stroke,fill}
+		\end{pgfscope}
+	}
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Shadow IsourceUP shape => do nothing but defines anchors
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Shadow IsourceUP shape}{
+	\inheritsavedanchors[from=Base source shape]
+	\foreach \anchor in {north,north west,north east,center,west,east,
+	,south,south west,south east,text}{%
+		\inheritanchor[from=Base source shape]{\anchor}}
+	\backgroundpath{}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Base Anchors for a Quadripole like shape 
+%%% (note that the second side anchors are missing, 
+%%% since this will also be used as a base for the black box)
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@QuadBaseAnchors}[1]{
+	\savedanchor\centerpoint{
+		\pgfpoint{0}{0}
+	}
+	\anchor{center}{\centerpoint}
+	\anchor{text}{\text}%
+	\savedanchor{\text}{%
+		#1
+		\pgfpoint{\x{Tinnerleft}}{\y{Tbottom}}
+	}
+	\anchor{bottom left}{\bottomleft}
+	\savedanchor{\bottomleft}{%
+		#1
+		\pgfpoint{\x{Tinnerleft}}{\y{Tbottom}}
+	}
+	\anchor{bottom center}{\bottomcenter}
+	\savedanchor{\bottomcenter}{%
+		#1
+		\pgfpoint{0}{\y{Tbottom}}
+	}
+	\anchor{bottom right}{\bottomright}
+	\savedanchor{\bottomright}{%
+		#1
+		\pgfpoint{\x{Tinnerright}}{\y{Tbottom}}
+	}
+	\anchor{near bottom left}{\nearbottomleft}
+	\savedanchor{\nearbottomleft}{%
+		#1
+		\pgfpoint{\x{Tinnerleft}}{\y{Tinnerbottom}}
+	}
+	\anchor{near bottom center}{\nearbottomcenter}%
+	\savedanchor{\nearbottomcenter}{%
+		#1
+		\pgfpoint{0}{\y{Tinnerbottom}}
+	}
+	\anchor{near bottom right}{\nearbottomright}%
+	\savedanchor{\nearbottomright}{%
+		#1
+		\pgfpoint{\x{Tinnerright}}{\y{Tinnerbottom}}
+	}
+	\anchor{top left}{\topleft}%
+	\savedanchor{\topleft}{%
+		#1
+		\pgfpoint{\x{Tinnerleft}}{-\y{Tbottom}}
+	}
+	\anchor{top center}{\topcenter}%
+	\savedanchor{\topcenter}{%
+		#1
+		\pgfpoint{0}{-\y{Tbottom}}
+	}
+	\anchor{top right}{\topright}%
+	\savedanchor{\topright}{%
+		#1
+		\pgfpoint{\x{Tinnerright}}{-\y{Tbottom}}
+	}
+	\anchor{near top left}{\neartopleft}%
+	\savedanchor{\neartopleft}{%
+		#1
+		\pgfpoint{\x{Tinnerleft}}{-\y{Tinnerbottom}}
+	}
+	\anchor{near top center}{\neartopcenter}%
+	\savedanchor{\neartopcenter}{%
+		#1
+		\pgfpoint{0}{-\y{Tinnerbottom}}
+	}
+	\anchor{near top right}{\neartopright}%
+	\savedanchor{\neartopright}{%
+		#1
+		\pgfpoint{\x{Tinnerright}}{-\y{Tinnerbottom}}
+	}
+	\anchor{west}{\west}%
+	\savedanchor{\west}{%
+		#1
+    \pgfpoint{\x{outerleft}}{\y{center}}
+	}
+	\anchor{east}{\east}%
+	\savedanchor{\east}{%
+		#1
+    \pgfpoint{\x{outerright}}{\y{center}}
+	}
+	\anchor{north}{\north}%
+	\savedanchor{\north}{%
+		#1
+    \pgfpoint{\x{center}}{\y{outertop}}
+	}
+	\anchor{north west}{\northwest}%
+	\savedanchor{\northwest}{%
+		#1
+    \pgfpoint{\x{outerleft}}{\y{outertop}}
+	}
+	\anchor{north east}{\northeast}%
+	\savedanchor{\northeast}{%
+		#1
+    \pgfpoint{\x{outerright}}{\y{outertop}}
+	}
+	\anchor{south}{\south}%
+	\savedanchor{\south}{%
+		#1
+    \pgfpoint{\x{center}}{\y{outerbottom}}
+	}
+	\anchor{south west}{\southwest}%
+	\savedanchor{\southwest}{%
+		#1
+    \pgfpoint{\x{outerleft}}{\y{outerbottom}}
+	}
+	\anchor{south east}{\southeast}%
+	\savedanchor{\southeast}{%
+		#1
+    \pgfpoint{\x{outerright}}{\y{outerbottom}}
+	}
+	\anchor{1+}{\NodeA}
+	\savedanchor{\NodeA}{
+		#1
+    \pgfpoint{\x{outerleft}}{\y{innertop}}
+	}
+	\anchor{1-}{\NodeB}
+	\savedanchor{\NodeB}{
+		#1
+    \pgfpoint{\x{outerleft}}{\y{innerbottom}}
+	}
+	\anchor{inner 1+}{\NodeAi}
+	\savedanchor{\NodeAi}{
+		#1
+    \pgfpoint{\x{innerleft}}{\y{innertop}}
+	}
+	\anchor{inner 1-}{\NodeBi}
+	\savedanchor{\NodeBi}{
+		#1
+    \pgfpoint{\x{innerleft}}{\y{innerbottom}}
+	}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% the Quadripole Base shape itself. Just a box with the external currents and voltages marked.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Quad shape}{
+%
+  \ctikzext@@QuadBaseAnchors{\ctikzext@@QuadPoints}
+%
+	\anchor{2+}{\NodeC}
+	\savedanchor{\NodeC}{
+		\ctikzext@@QuadPoints
+    \pgfpoint{\x{outerright}}{\y{innertop}}
+	}
+	\anchor{2-}{\NodeD}
+	\savedanchor{\NodeD}{
+		\ctikzext@@QuadPoints
+    \pgfpoint{\x{outerright}}{\y{innerbottom}}
+	}
+	\anchor{inner 2+}{\NodeCi}
+	\savedanchor{\NodeCi}{
+		\ctikzext@@QuadPoints
+    \pgfpoint{\x{innerright}}{\y{innertop}}
+	}
+	\anchor{inner 2-}{\NodeDi}
+	\savedanchor{\NodeDi}{
+		\ctikzext@@QuadPoints
+    \pgfpoint{\x{innerright}}{\y{innerbottom}}
+	}
+%  
+	\behindbackgroundpath{%  this is new
+		\ctikzext@@QuadPoints
+      \SearchValueOf{QuadKeys}{outer ext}{\@@outerext}
+      \SearchValueOf{QuadKeys}{minussign len}{\@@minussignlen}
+      \SearchValueOf{QuadKeys}{plussign len}{\@@plussignlen}
+%
+		\pgfpathmoveto{\pgfpoint{\x{left}}{\y{bottom}}} 
+		\pgfpathlineto{\pgfpoint{\x{left}}{\y{top}}}
+		\pgfpathlineto{\pgfpoint{\x{right}}{\y{top}}}
+		\pgfpathlineto{\pgfpoint{\x{right}}{\y{bottom}}}
+		\pgfpathlineto{\pgfpoint{\x{left}}{\y{bottom}}}
+		\pgfpathmoveto{\pgfpoint{\x{outerleft}}{\y{innerbottom}}}
+		\pgfpathlineto{\pgfpoint{\x{innerleft}}{\y{innerbottom}}}
+		\pgfpathmoveto{\pgfpoint{-\x{outerleft}}{\y{innerbottom}}}
+		\pgfpathlineto{\pgfpoint{-\x{innerleft}}{\y{innerbottom}}}
+		\pgfpathmoveto{\pgfpoint{\x{outerleft}}{\y{innertop}}}
+		\pgfpathlineto{\pgfpoint{\x{innerleft}}{\y{innertop}}} 
+		\pgfpathmoveto{\pgfpoint{-\x{outerleft}}{\y{innertop}}}
+		\pgfpathlineto{\pgfpoint{-\x{innerleft}}{\y{innertop}}}
+    \ctikzext@@plussignat[\@@plussignlen/2]{\x{outerleft}+\@@outerext/2}{\y{innertop}-\@@outerext/2}
+    \ctikzext@@minussignat[\@@minussignlen/2]{\x{outerleft}+\@@outerext/2}{\y{innerbottom}+\@@outerext/2}
+    \ctikzext@@plussignat[\@@plussignlen/2]{-\x{outerleft}-\@@outerext/2}{\y{innertop}-\@@outerext/2}
+    \ctikzext@@minussignat[\@@minussignlen/2]{-\x{outerleft}-\@@outerext/2}{\y{innerbottom}+\@@outerext/2}
+    \pgfusepath{draw}
+    \ctikzext@@arrowtipat{0}{\x{outerleft}+\@@outerext/2}{\y{innertop}}
+    \ctikzext@@arrowtipat{180}{-\x{outerleft}-\@@outerext/2}{\y{innertop}}
+    \pgfusepath{draw,fill}
+    %
+    \iftoggle{ctikzext@@toggle@innermarks}{
+    {
+      \pgftransformshift{\pgfpoint{-\x{innerleft}}{\y{innertop}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    {
+      \pgftransformshift{\pgfpoint{\x{innerleft}}{\y{innertop}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    {
+      \pgftransformshift{\pgfpoint{\x{innerleft}}{\y{innerbottom}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    {
+      \pgftransformshift{\pgfpoint{-\x{innerleft}}{\y{innerbottom}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    }{}  
+    % 
+    \iftoggle{ctikzext@@toggle@outermarks}{
+    {
+      \pgftransformshift{\pgfpoint{-\x{outerleft}}{\y{innertop}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    {
+      \pgftransformshift{\pgfpoint{\x{outerleft}}{\y{innertop}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    {
+      \pgftransformshift{\pgfpoint{\x{outerleft}}{\y{innerbottom}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    {
+      \pgftransformshift{\pgfpoint{-\x{outerleft}}{\y{innerbottom}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    }{}  
+    % 
+    {
+    		\pgfsetdash{{0.8pt}{1pt}{0.2pt}{1pt}}{0pt}
+        \pgfsetlinewidth{0.5\pgflinewidth}
+    		\pgfpathmoveto{\pgfpoint{-\x{refA}}{\y{innerbottom}}}
+    		\pgfpathlineto{\pgfpoint{\x{refA}}{\y{innerbottom}}}
+    \pgfusepath{draw}
+    }
+      \SearchValueOf{QuadKeys}{I1}{\@@IA}
+      \SearchValueOf{QuadKeys}{I2}{\@@IB}
+      \SearchValueOf{QuadKeys}{V1}{\@@VA}
+      \SearchValueOf{QuadKeys}{V2}{\@@VB}
+    %
+		\iftoggle{ctikzext@@toggle@inverted}{
+			\pgftransformresetnontranslations
+			\pgftext[bottom,right,at={\pgfpoint{\x{left}-0.4ex}{\y{innertop}+0.8ex}}]{\@@IB}
+			\pgftext[bottom,left,at={\pgfpoint{\x{right}+0.4ex}{\y{innertop}+0.8ex}}]{\@@IA}
+			\pgftext[left,x=\x{right}+0.4ex]{\@@VA}
+			\pgftext[right,x=\x{left}-0.4ex]{\@@VB}
+		}{
+			%\pgftransformresetnontranslations   %might be added, changes nothing if nothing scaled/rotated.
+			\pgftext[bottom,left,at={\pgfpoint{\x{right}+0.4ex}{\y{innertop}+0.8ex}}]{\@@IB}
+			\pgftext[bottom,right,at={\pgfpoint{\x{left}-0.4ex}{\y{innertop}+0.8ex}}]{\@@IA}
+			\pgftext[right,x=\x{left}-0.4ex]{\@@VA}
+			\pgftext[left,x=\x{right}+0.4ex]{\@@VB}
+		}
+	}
+	\backgroundpath{	\iftoggle{ctikzext@@toggle@inverted}{\pgftransformresetnontranslations}{} }
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% the Z Quadripole shape itself.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Quad Z shape}{
+	\inheritsavedanchors[from=Quad shape]
+	\foreach \anchor in {north,center,west,east,south,north west,north east,south west, south east,
+	text,bottom left,bottom right,bottom center, near bottom left, near bottom right, near bottom center,
+	top left,top right,top center, near top left, near top right, near top center,
+	1+,2+,1-,2-, inner 1+, inner 2+, inner 1-, inner 2-}{%
+		\inheritanchor[from=Quad shape]{\anchor}}
+	\inheritbehindbackgroundpath[from=Quad shape]
+	\backgroundpath{
+		\ctikzext@@QuadPoints
+		\ctikzext@@Zside{Z11}{Z12}{I2}{}
+		\ctikzext@@Zside{Z22}{Z21}{I1}{-}
+		\iftoggle{ctikzext@@toggle@inverted}{\pgftransformresetnontranslations}{}
+	}
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% the Y Quadripole shape itself.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Quad Y shape}{
+	\inheritsavedanchors[from=Quad shape]
+	\foreach \anchor in {north,center,west,east,south,north west,north east,south west, south east,
+	text,bottom left,bottom right,bottom center, near bottom left, near bottom right, near bottom center,
+	top left,top right,top center, near top left, near top right, near top center,
+	1+,2+,1-,2-, inner 1+, inner 2+, inner 1-, inner 2-}{%
+		\inheritanchor[from=Quad shape]{\anchor}}
+	\inheritbehindbackgroundpath[from=Quad shape]
+	\backgroundpath{
+		\ctikzext@@QuadPoints
+		\ctikzext@@Yside{Y11}{Y12}{V2}{}
+		\ctikzext@@Yside{Y22}{Y21}{V1}{-}
+		\iftoggle{ctikzext@@toggle@inverted}{\pgftransformresetnontranslations}{}
+	}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% the H Quadripole shape itself.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Quad H shape}{
+	\inheritsavedanchors[from=Quad shape]
+	\foreach \anchor in {north,center,west,east,south,north west,north east,south west, south east,
+	text,bottom left,bottom right,bottom center, near bottom left, near bottom right, near bottom center,
+	top left,top right,top center, near top left, near top right, near top center,
+	1+,2+,1-,2-, inner 1+, inner 2+, inner 1-, inner 2-}{%
+		\inheritanchor[from=Quad shape]{\anchor}}
+	\inheritbehindbackgroundpath[from=Quad shape]
+	\backgroundpath{
+		\ctikzext@@QuadPoints
+		\ctikzext@@Zside{H11}{H12}{V2}{}
+		\ctikzext@@Yside{H22}{H21}{I1}{-}
+		\iftoggle{ctikzext@@toggle@inverted}{\pgftransformresetnontranslations}{}
+	}
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% the G Quadripole shape itself.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Quad G shape}{
+	\inheritsavedanchors[from=Quad shape]
+	\foreach \anchor in {north,center,west,east,south,north west,north east,south west, south east,
+	text,bottom left,bottom right,bottom center, near bottom left, near bottom right, near bottom center,
+	top left,top right,top center, near top left, near top right, near top center,
+	1+,2+,1-,2-, inner 1+, inner 2+, inner 1-, inner 2-}{%
+		\inheritanchor[from=Quad shape]{\anchor}}
+	\inheritbehindbackgroundpath[from=Quad shape]
+	\backgroundpath{
+		\ctikzext@@QuadPoints
+		\ctikzext@@Yside{G11}{G12}{I2}{}
+		\ctikzext@@Zside{G22}{G21}{V1}{-}
+		\iftoggle{ctikzext@@toggle@inverted}{\pgftransformresetnontranslations}{}
+	}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% the BB (Black Box) is just a 'single sided' Quad
+%%%
+%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Coordinates for a Black Box
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@BBPoints}{
+      \SearchValueOf{QuadKeys}{outer ext}{\@@outerext}
+      \SearchValueOf{QuadKeys}{inner ext}{\@@innerext}
+      \SearchValueOf{QuadKeys}{half base height}{\@@halfbaseheight}
+      \SearchValueOf{QuadKeys}{half base width}{\@@halfbasewidth}
+      \SearchValueOf{QuadKeys}{height ext}{\@@heightext}
+	\tikzmath{
+		real \x,\y;
+    \x{center}=0;
+    \y{center}=0;
+		\x{right}=0 + \@@halfbasewidth;
+		\y{top}=0 +( \@@halfbaseheight +  \@@heightext);
+		%
+		\x{left}=0 - \@@halfbasewidth;
+		\y{bottom}=0 -( \@@halfbaseheight +  \@@heightext);
+		%
+		\y{innerbottom}=0 - \@@halfbaseheight;
+		\y{innertop}=0 + \@@halfbaseheight;
+		%
+		\y{outerbottom}=\y{bottom} - 0.5*\@@outerext;
+		\y{outertop}=\y{top} + 0.5*\@@outerext;
+		%
+		\x{outerleft}=\x{left} - \@@outerext;
+		\x{innerleft}=\x{left} + \@@innerext;
+		%
+		\x{outerright}=\x{right} + \@@outerext;
+		\x{innerright}=\x{right} - \@@innerext;
+    %
+		\x{refC}=0 + 0.3*\@@halfbasewidth;
+    \x{refB}=(\x{innerleft}+\x{refC})/2; %center point for Res shape
+    \x{refA}=(2*\x{innerleft}+\x{refC})/3; %'center' point for Y.Res shape
+		%
+		\y{Tbottom}=\y{bottom} + 0.65ex;
+		\x{Tinnerleft}=\x{innerleft} ;
+		\y{Tinnerbottom}=\y{innerbottom} + 0.95ex;
+		\x{Tinnerright}=\x{innerright};
+    \x{Tcenter}=0;
+    %
+		\y{Ttop}=\y{top} - 0.65ex;
+		\y{Tinnertop}=\y{innertop} - 0.95ex;
+	}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% the base shape for a one port 'black box'. Just the box plus the external current/voltage marked
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{BB shape}{
+  \ctikzext@@QuadBaseAnchors{\ctikzext@@BBPoints}
+	\behindbackgroundpath{
+		\ctikzext@@BBPoints
+      \SearchValueOf{QuadKeys}{outer ext}{\@@outerext}
+      \SearchValueOf{QuadKeys}{plussign len}{\@@plussignlen}
+      \SearchValueOf{QuadKeys}{minussign len}{\@@minussignlen}
+		\pgfpathmoveto{\pgfpoint{\x{left}}{\y{bottom}}}
+		\pgfpathlineto{\pgfpoint{\x{left}}{\y{top}}}
+		\pgfpathlineto{\pgfpoint{\x{right}}{\y{top}}}
+		\pgfpathlineto{\pgfpoint{\x{right}}{\y{bottom}}}
+		\pgfpathlineto{\pgfpoint{\x{left}}{\y{bottom}}}
+		\pgfpathmoveto{\pgfpoint{\x{outerleft}}{\y{innerbottom}}}
+		\pgfpathlineto{\pgfpoint{\x{innerleft}}{\y{innerbottom}}}
+		\pgfpathmoveto{\pgfpoint{\x{outerleft}}{\y{innertop}}}
+		\pgfpathlineto{\pgfpoint{\x{innerleft}}{\y{innertop}}}
+    \ctikzext@@plussignat[\@@plussignlen/2]{\x{outerleft}+\@@outerext/2}{\y{innertop}-\@@outerext/2}
+    \ctikzext@@minussignat[\@@minussignlen/2]{\x{outerleft}+\@@outerext/2}{\y{innerbottom}+\@@outerext/2}
+		\pgfusepath{draw}
+    \ctikzext@@arrowtipat{180}{\x{outerleft}+\@@outerext/2}{\y{innertop}}
+		\pgfusepath{draw,fill}
+    %
+    \iftoggle{ctikzext@@toggle@innermarks}{
+    {
+      \pgftransformshift{\pgfpoint{\x{innerleft}}{\y{innertop}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    {
+      \pgftransformshift{\pgfpoint{\x{innerleft}}{\y{innerbottom}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    }{}   
+    %
+    \iftoggle{ctikzext@@toggle@outermarks}{
+    {
+      \pgftransformshift{\pgfpoint{\x{outerleft}}{\y{innertop}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    {
+      \pgftransformshift{\pgfpoint{\x{outerleft}}{\y{innerbottom}}}
+      \pgfnode{circ}{center}{}{}{}
+    }
+    }{}   
+    %
+      \SearchValueOf{QuadKeys}{I1}{\@@IA}
+      \SearchValueOf{QuadKeys}{V1}{\@@VA}
+    %
+		\iftoggle{ctikzext@@toggle@inverted}{
+			\pgftransformresetnontranslations
+			\pgftext[bottom,left,at={\pgfpoint{\x{right}+0.4ex}{\y{innertop}+0.8ex}}]{\@@IA}
+			\pgftext[left,x=\x{right}+0.4ex]{\@@VA}
+		}{
+			\pgftext[bottom,right,at={\pgfpoint{\x{left}-0.4ex}{\y{innertop}+0.8ex}}]{\@@IA}
+			\pgftext[right,x=\x{left}-0.4ex]{\@@VA}
+		}
+		\pgfusepath{draw}
+	}
+	\backgroundpath{}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% A 'Thevenin' circuit inside a black box.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{TheveninBB shape}{
+	\inheritsavedanchors[from=BB shape]
+	\foreach \anchor in {north,center,west,east,south,north west,north east,south west, south east,
+	text,bottom left,bottom right,bottom center, near bottom left, near bottom right, near bottom center,
+	top left,top right,top center, near top left, near top right, near top center,
+	1+,1-, inner 1+, inner 1-}{%
+		\inheritanchor[from=BB shape]{\anchor}}
+	\inheritbehindbackgroundpath[from=BB shape]
+	\backgroundpath{
+		\ctikzext@@BBPoints
+		\ctikzext@@Zside{Zth}{Vth}{none}{}
+		\iftoggle{ctikzext@@toggle@inverted}{\pgftransformresetnontranslations}{}
+	}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% A 'Norton' circuit inside a black box.
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{NortonBB shape}{
+	\inheritsavedanchors[from=BB shape]
+	\foreach \anchor in {north,center,west,east,south,north west,north east,south west, south east,
+	text,bottom left,bottom right,bottom center, near bottom left, near bottom right, near bottom center,
+	top left,top right,top center, near top left, near top right, near top center,
+	1+,1-, inner 1+, inner 1-}{%
+		\inheritanchor[from=BB shape]{\anchor}}
+	\inheritbehindbackgroundpath[from=BB shape]
+	\backgroundpath{
+		\ctikzext@@BBPoints
+    \ctikzext@@Yside[IsourceUP shape]{Yn}{In}{none}{}
+		\iftoggle{ctikzext@@toggle@inverted}{\pgftransformresetnontranslations}{}
+	}
+}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% A Pseudo-Graph is just that, a crude representantion of a graph, out-of-scale.
+%%%
+%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Coordinates for a Pseudo-Graph shape
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@PGPoints}{
+      \SearchValueOf{PGKeys}{outer sep}{\@@outersep}
+      \SearchValueOf{PGKeys}{half base width}{\@@halfbasewidth}
+      \SearchValueOf{PGKeys}{half base height}{\@@halfbaseheight}
+	\tikzmath{
+		real \x,\y;
+    \x{center}=0;
+    \y{center}=0;
+		\x{right}=\@@halfbasewidth + \@@outersep;
+		\x{left}= 0-\x{right};
+		\y{top}=+( \@@halfbaseheight + \@@outersep);
+		\y{bottom}=0-\y{top};
+		%
+		\x{axisright}=\@@halfbasewidth;
+		\x{axisleft}=0-\x{right};
+		\y{axistop}=+\@@halfbaseheight;
+		\y{axisbottom}=0-\y{top};
+%
+    \y{Cbottom}=0.6*\y{axisbottom};
+    \y{Ctop}=0-\y{Cbottom};
+    %
+    \x{Cleft}=0.6*\x{axisleft};
+    \x{Cright}=-\x{Cleft};
+%
+		\y{innerbottom}=0.8*\y{axisbottom};
+		\y{innertop}=0-\y{innerbottom};
+		%
+		\x{innerleft}=0.8*\x{axisleft};
+		\x{innerright}=-\x{innerleft};
+    %
+	}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Base Anchors for a Source like shape
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\ctikzext@@PGBaseAnchors}[1]{
+	\savedanchor\centerpoint{
+		\pgfpoint{0}{0}
+	}
+	\anchor{center}{\centerpoint}
+	\anchor{text}{\text}%
+	\savedanchor{\text}{%
+    #1
+    \pgfpoint{\x{center}}{\y{center}}
+	}
+	\anchor{west}{\west}%
+	\savedanchor{\west}{%
+    #1
+    \pgfpoint{\x{left}}{\y{center}}
+	}
+	\anchor{east}{\east}%
+	\savedanchor{\east}{%
+    #1
+    \pgfpoint{\x{right}}{\y{center}}
+	}
+	\anchor{north}{\north}%
+	\savedanchor{\north}{%
+    #1
+    \pgfpoint{\x{center}}{\y{top}}
+	}
+	\anchor{south}{\south}%
+	\savedanchor{\south}{%
+    #1
+    \pgfpoint{\x{center}}{\y{bottom}}
+	}
+	\anchor{north west}{\northwest}%
+	\savedanchor{\northwest}{%
+    #1
+    \pgfpoint{\x{left}}{\y{top}}
+	}
+	\anchor{north east}{\northeast}%
+	\savedanchor{\northeast}{%
+    #1
+    \pgfpoint{\x{right}}{\y{top}}
+	}
+	\anchor{south west}{\southwest}%
+	\savedanchor{\southwest}{%
+    #1
+    \pgfpoint{\x{right}}{\y{bottom}}
+	}
+	\anchor{south east}{\southeast}%
+	\savedanchor{\southeast}{%
+    #1
+    \pgfpoint{\x{right}}{\y{bottom}}
+	}
+}
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Base shape for a source like shape
+%%%
+%%%%%%%%%%%%%%%%%%%
+\pgfdeclareshape{Base PG shape}{
+  \ctikzext@@PGBaseAnchors{\ctikzext@@PGPoints}
+	\backgroundpath{
+	}
+}
+
+
+%%%%%%%%%%%%%%%%%%%
+%%%
+%%% currente source shape, arrow pointing up. either round or diamond
+%%%
+%%%%%%%%%%%%%%%%%%%
+\newdimen\ctikzext@@pgflinewidth
+\pgfdeclareshape{linear PG load line shape}{
+	\inheritsavedanchors[from=Base PG shape]
+	\foreach \anchor in {north,north west,north east,center,west,east,
+	,south,south west,south east,text}{%
+		\inheritanchor[from=Base PG shape]{\anchor}}
+	\backgroundpath{
+    \begin{pgfscope}
+      \ctikzext@@PGPoints
+      \ctikzext@@pgflinewidth=\pgflinewidth
+      \SearchValueOf{QuadKeys}{thickness}{\@@tmpthickness}
+      \pgfsetlinewidth{\@@tmpthickness\pgflinewidth}
+  		\pgfsetroundcap
+      \pgfkeys{\ctikzext@@PGKeysPath/@PGPoints}
+        \pgfpathmoveto{\pgfpoint{\x{axisleft}}{\y{Xaxispos}}}
+        \pgfpathlineto{\pgfpoint{\x{axisright}}{\y{Xaxispos}}}
+        %
+        \pgfpathmoveto{\pgfpoint{\x{Yaxispos}}{\y{axisbottom}}}
+        \pgfpathlineto{\pgfpoint{\x{Yaxispos}}{\y{axistop}}}
+        \pgfusepath{stroke}
+        \ctikzext@@arrowtipat{0}{\x{axisright}}{\y{Xaxispos}}
+        \ctikzext@@arrowtipat{90}{\x{Yaxispos}}{\y{axistop}}        
+        \pgfusepath{stroke,fill}
+        \pgfsetlinewidth{\ctikzext@@pgflinewidth}
+        \pgfpathmoveto{\pgfpoint{\x{coordA}}{\y{coordA}}}
+        \pgfpathlineto{\pgfpoint{\x{coordB}}{\y{coordB}}}
+        \pgfusepath{stroke}
+            \SearchValueOf{PGKeys}{x axis}{\@@Xaxis}
+            \SearchValueOf{PGKeys}{x val}{\@@Xval}
+            \SearchValueOf{PGKeys}{y axis}{\@@Yaxis}
+            \SearchValueOf{PGKeys}{y val}{\@@Yval}
+          \pgftext[\ctikzext@@PG@XaxisTanchor,at=\pgfpoint{\x{axisright}}{\y{TXaxiscoord}}]{\@@Xaxis}
+          \pgftext[\ctikzext@@PG@XvalTanchor,at=\pgfpoint{\x{TXvalcoord}}{\y{TXvalcoord}}]{\@@Xval}
+          \pgftext[\ctikzext@@PG@YaxisTanchor,at=\pgfpoint{\x{TYaxiscoord}}{\y{axistop}}]{\@@Yaxis}
+          \pgftext[\ctikzext@@PG@YvalTanchor,at=\pgfpoint{\x{TYvalcoord}}{\y{TYvalcoord}}]{\@@Yval}
+    \end{pgfscope}
+	}
+}
+
