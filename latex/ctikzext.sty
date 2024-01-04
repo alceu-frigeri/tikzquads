@@ -155,7 +155,7 @@
       \def\@@pincaseD:#1:#2:#3:#4:{\@@genpincoord{#1}{blue}{-45}{4}}
 
       \newcommand\@@genpincoord[4]{%
-        coordinate(#1) node(#1){}
+        coordinate(#1) node(n.#1){}
         node[circle, #2,  inner sep=1.2pt, outer sep=0pt, radius=1pt, fill=#2!20!white, fill opacity=0.2, draw opacity=0.4, draw,
           pin={[#2, overlay, inner sep=0pt, outer sep=1pt, font=\tiny, pin distance=#4pt,
           pin edge={#2, overlay}]#3:#1}]{}%
@@ -666,23 +666,21 @@
                 \dx{tmp} = (\Ctmpx{to} - \Ctmpx{from})/100;
                 \dy{tmp} = (\Ctmpy{to} - \Ctmpy{from})/100;
                 \X{diff} = 50*sqrt((\dx{tmp})^2 + (\dy{tmp})^2)  + \@@innerext;
-                \d{ang} = atan2(\dy{tmp},\dx{tmp});
             }
-            \pgfkeysalso{/tikz/rotate=\d{ang},\ctikzext@@QuadKeysPath/half base width=\X{diff}}
+            \pgfkeysalso{\ctikzext@@QuadKeysPath/half base width=\X{diff}}
           },
-%        outer x fit to/.code 2 args={%
-%            \SearchValueOf{QuadKeys}{outer ext}{\@@outerext}
-%            \tikzmath{coordinate \Ctmp; real \dx , \dy;
-%              real \X , \d;
-%              \Ctmp{from} = (##1);
-%              \Ctmp{to} = (##2);
-%                \dx{tmp} = (\Ctmpx{to} - \Ctmpx{from})/100;
-%                \dy{tmp} = (\Ctmpy{to} - \Ctmpy{from})/100;
-%                \X{diff} = 50*sqrt((\dx{tmp})^2 + (\dy{tmp})^2)  - \@@outerext;
-%                \d{ang} = atan2(\dy{tmp},\dx{tmp});
-%            }
-%            \pgfkeysalso{/tikz/rotate=\d{ang},\ctikzext@@QuadKeysPath/half base width=\X{diff}}            
-%          } ,
+        outer x fit to/.code 2 args={%
+            \SearchValueOf{QuadKeys}{outer ext}{\@@outerext}
+            \tikzmath{coordinate \Ctmp; real \dx , \dy;
+              real \X , \d;
+              \Ctmp{from} = (##1);
+              \Ctmp{to} = (##2);
+                \dx{tmp} = (\Ctmpx{to} - \Ctmpx{from})/100;
+                \dy{tmp} = (\Ctmpy{to} - \Ctmpy{from})/100;
+                \X{diff} = 50*sqrt((\dx{tmp})^2 + (\dy{tmp})^2)  - \@@outerext;
+            }
+            \pgfkeysalso{\ctikzext@@QuadKeysPath/half base width=\X{diff}}            
+          } ,
       }
 }
 

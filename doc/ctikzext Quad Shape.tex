@@ -148,10 +148,10 @@ Additionally, one has:
   \describe {alt, opt} {Case a Voltage source is zero, a series impedance will be draw vertically.}
   \describe {outer x fit to} {\tsobj[keys]{outer x fit=}\tsargs[marg]{CoordA,CoordB}. The width will be set so that \tsobj[meta]{1+,2+} (or \tsobj[meta]{1-,2-}, depending on the used anchor) will fit \tsobj[meta]{CoordA,CoordB}}
   \describe {inner x fit to} {\tsobj[keys]{inner x fit=}\tsargs[marg]{CoordA,CoordB}. The width will be set so that \tsobj[meta]{inner 1+,inner 2+} (or \tsobj[meta]{inner 1-,inner 2-}, depending on the used anchor) will fit \tsobj[meta]{CoordA,CoordB}}
-  \describe {y fit to} {\tsobj[keys]{y fit=}\tsargs[marg]{CoordA,CoordB}. In the case of a quadripole, the distance between, lets say \tsobj[keys]{1+,1-} will be made equal to the distance between \tsobj[keys]{CoordA,CoordB}. In the case of a Thevenin/Norton, \tsobj[keys]{1+,1-} will fit \tsobj[keys]{CoordA,CoordB} respectively.}
+  \describe {y fit to} {\tsobj[keys]{y fit=}\tsargs[marg]{CoordA,CoordB}. The distance between, lets say \tsobj[keys]{1+,1-} will be made equal to the distance between \tsobj[keys]{CoordA,CoordB}.}
 \end{describelist*}
 \begin{tsremark}
-\tsobj[keys]{outer x fit, inner x fit} might result in a shape rotation. \tsobj[keys]{y fit} in case of a quadripole will never result in a rotation, while in case of a thevenin/norton it might.
+For Quadripoles, \tsobj[keys]{outer x fit, inner x fit} might result in a shape rotation. \tsobj[keys]{y fit} never will result in a rotation.
 \end{tsremark}
 \begin{tsremark}
 Those keys can be used with all the following components: \tsobj[meta]{Quad,Quad Z,Quad Y,Quad G,Quad H,ToQuad,ToQuad Z,ToQuad Y,ToQuad G,ToQuad H,Black Box,Thevenin,Norton,ToBlack Box,ToThevenin,ToNorton}.
@@ -438,13 +438,13 @@ Additionally, one has:
   \describe {outer marks}  {If set, the outer anchors will be marked.}
   \describe {invert} {The shape will be inverted, more or less like 'x scale=-1'.}
   \describe {alt, opt} {Case a Voltage source is zero, a series impedance will be draw vertically.}
-  \describe {outer x fit to} {\tsobj[keys]{outer x fit=}\tsargs[marg]{CoordA,CoordB}. The width will be set so that \tsobj[meta]{1+,2+} (or \tsobj[meta]{1-,2-}, depending on the used anchor) will fit \tsobj[meta]{CoordA,CoordB}}
-  \describe {inner x fit to} {\tsobj[keys]{inner x fit=}\tsargs[marg]{CoordA,CoordB}. The width will be set so that \tsobj[meta]{inner 1+,inner 2+} (or \tsobj[meta]{inner 1-,inner 2-}, depending on the used anchor) will fit \tsobj[meta]{CoordA,CoordB}}
-  \describe {y fit to} {\tsobj[keys]{y fit=}\tsargs[marg]{CoordA,CoordB}. In the case of a quadripole, the distance between, lets say \tsobj[keys]{1+,1-} will be made equal to the distance between \tsobj[keys]{CoordA,CoordB}. In the case of a Thevenin/Norton, \tsobj[keys]{1+,1-} will fit \tsobj[keys]{CoordA,CoordB} respectively.}
+  \describe {outer x fit to} {\tsobj[keys]{outer x fit=}\tsargs[marg]{CoordA,CoordB}. The width will be set so that the distance between \tsobj[meta]{1+,2+} (or \tsobj[meta]{1-,2-}, depending on the used anchor) will be the same as \tsobj[meta]{CoordA,CoordB}.}
+  \describe {inner x fit to} {\tsobj[keys]{inner x fit=}\tsargs[marg]{CoordA,CoordB}. The width will be set so that the distance between \tsobj[meta]{inner 1+,inner 2+} (or \tsobj[meta]{inner 1-,inner 2-}, depending on the used anchor) will be the same as \tsobj[meta]{CoordA,CoordB}}
+  \describe {y fit to} {\tsobj[keys]{y fit=}\tsargs[marg]{CoordA,CoordB}.  \tsobj[keys]{1+,1-} will fit \tsobj[keys]{CoordA,CoordB} respectively.}
 \end{describelist*}
 
 \begin{tsremark}
-\tsobj[keys]{outer x fit, inner x fit} might result in a shape rotation. \tsobj[keys]{y fit} in case of a quadripole will never result in a rotation, while in case of a thevenin/norton it might.
+For a Thevenin/Norton/Black Box, \tsobj[keys]{outer x fit, inner x fit} will never result in a shape rotation. \tsobj[keys]{y fit}   might result in a shape rotation.
 \end{tsremark}
 \begin{tsremark}
 Those keys can be used with all the following components: \tsobj[meta]{Quad,Quad Z,Quad Y,Quad G,Quad H,ToQuad,ToQuad Z,ToQuad Y,ToQuad G,ToQuad H,Black Box,Thevenin,Norton,ToBlack Box,ToThevenin,ToNorton}.
