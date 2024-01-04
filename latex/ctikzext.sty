@@ -149,13 +149,13 @@
     %%%%    
       \def\pincoord(#1){\@@pincase#1,,,,\@@pincaseA\@@pincaseB\@@pincaseC\@@pincaseD\relax:}
       \def\@@pincase#1,#2,#3,#4,#5#6#7#8#9:{#8:#1:#2:#3:#4:}
-      \def\@@pincaseA:#1:#2:#3:#4:{\genpincoord{#1}{#2}{#3}{#4}}
-      \def\@@pincaseB:#1:#2:#3:#4:{\genpincoord{#1}{#2}{#3}{4}}
-      \def\@@pincaseC:#1:#2:#3:#4:{\genpincoord{#1}{#2}{-45}{4}}
-      \def\@@pincaseD:#1:#2:#3:#4:{\genpincoord{#1}{blue}{-45}{4}}
+      \def\@@pincaseA:#1:#2:#3:#4:{\@@genpincoord{#1}{#2}{#3}{#4}}
+      \def\@@pincaseB:#1:#2:#3:#4:{\@@genpincoord{#1}{#2}{#3}{4}}
+      \def\@@pincaseC:#1:#2:#3:#4:{\@@genpincoord{#1}{#2}{-45}{4}}
+      \def\@@pincaseD:#1:#2:#3:#4:{\@@genpincoord{#1}{blue}{-45}{4}}
 
-      \newcommand\genpincoord[4]{%
-        coordinate(#1) node(n-#1){}
+      \newcommand\@@genpincoord[4]{%
+        coordinate(#1) node(#1){}
         node[circle, #2,  inner sep=1.2pt, outer sep=0pt, radius=1pt, fill=#2!20!white, fill opacity=0.2, draw opacity=0.4, draw,
           pin={[#2, overlay, inner sep=0pt, outer sep=1pt, font=\tiny, pin distance=#4pt,
           pin edge={#2, overlay}]#3:#1}]{}%

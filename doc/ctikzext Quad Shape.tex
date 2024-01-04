@@ -31,6 +31,38 @@
 
 \begin{document}
 
+\section{Package Options}
+
+As of now, just one:
+\begin{describelist}{option}
+\describe{noxtracmds}{This will suppress the definition of a few auxiliary commands. See \ref{auxcmds}.}
+\end{describelist}
+
+\subsection{Auxiliary Commands}\label{auxcmds}
+Those are based on some ideas from Redaelli et al. (CircuiTiKz). Main differences: a variable number of parameters (see below) and it always also adds an empty node <coord>
+\begin{codedescribe}{\showcoordstrue,\shoocoordsfalse}
+\begin{codesyntax}%
+\tsmacro{\showcoordstrue}{}
+\tsmacro{\showcoordsfalse}{}
+\end{codesyntax}
+These will affect as the  \tsobj{\coord} will behave, with \tsobj{\showcoordstrue} a red pin will be added to the newly defined coordinate.
+\end{codedescribe}
+
+\begin{codedescribe}{\coord,\pincoord}
+\begin{codesyntax}%
+\tsobj{\coord}\tsargs[parg]{coord}
+\tsobj{\pincoord}\tsverb{(}\tsobj[oarg,sep={,}]{coord}\tsverb{)}
+\tsobj{\pincoord}\tsverb{(}\tsobj[oarg,sep={,}]{coord,color}\tsverb{)}
+\tsobj{\pincoord}\tsverb{(}\tsobj[oarg,sep={,}]{coord,color,angle}\tsverb{)}
+\tsobj{\pincoord}\tsverb{(}\tsobj[oarg,sep={,}]{coord,color,angle,distance}\tsverb{)}
+\end{codesyntax}
+The \tsobj{\coord} always expects a single parameter \tsobj[parg]{coord}. A coordinate and node with the same name will be created. If \tsobj{\showcoordstrue} is en force, it will also add a pin.
+
+The \tsobj{\pincoord} expects from one to 4 parameters, as listed. If omitted, the default value for distance is 4 (unit: pt), the default value for the angle is -45 (degrees), the default value for color is blue.
+In fact, the \tsobj{\coord(name)} is just a short cut for \tsverb{\pincoord(name,red,45)}, if \tsobj{\showcoordstrue}.
+\end{codedescribe}
+
+
 
 \section{Auxiliary Shapes and Basic Keys}
 Those shapes are not intended for end users.
