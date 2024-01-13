@@ -1,12 +1,13 @@
-ctikzext
+tikzquads
 ==========
 
-This is a (probably) an extension to CircuiTikZ (not sure if a separated package, or if it might be included with CircuiTikZ)
+This package defines a few extra shapes (single / dual port boxes) designed to be used together with
+the CircuiTikZ package.
 
 <!---
 For more details,  see the (some) documentation,
 
-[ctikzext.pdf](http://mirrors.ctan.org/macros/latex/contrib/ctikzext/doc/ctikzext.pdf)
+[tikzquads.pdf](http://mirrors.ctan.org/graphics/pgf/contrib/tikzdotncross/doc/tikzquads.pdf)
 
 --------------
 
@@ -14,14 +15,16 @@ For more details,  see the (some) documentation,
 * none besides a fairly recent LaTeX distribution as recent as 2022/06/01
 (with the new in kernel *\ProcessKeyOptions* and *\NewDocumentCommand*)
 
+and pgf/TikZ or CircuiTikZ
+
 ## Installation
-The stable version is available at [CTAN](https://ctan.org/pkg/ctikzext).
+The stable version is available at [CTAN](https://ctan.org/pkg/tikzquads).
 
 ## Usage
 ### Stable version
 Just place
 ```latex
-  \usepackage{ctikzext}
+  \usepackage{tikzquads}
 ```
 
 in the preamble and compile away.
@@ -32,20 +35,20 @@ Be aware that options might change between versions, so you have to check them m
 
 ## More Information and documentation
 More Information can be found in the documentation; you can find a  "bleeding edge" version
-at [the github page](http://github.com/alceu-frigeri/ctikzext)
+at [the github page](http://github.com/alceu-frigeri/tikzquads)
 
 ## Contacting Author
 
 For bug reports and enhancement suggestions, the preferred way is to use
-[the project's issue page](https://github.com/alceu-frigeri/ctikzext/issues).
+[the project's issue page](https://github.com/alceu-frigeri/tikzquads/issues).
 Please be ready to provide an example code showing the bug, if any.
 
 Please do not use the issue page for generic help on how to use the package.
 
-* git: https://github.com/alceu-frigeri/ctikzext
+* git: https://github.com/alceu-frigeri/tikzquads
 
 -------------
-Copyright 2023-present by Alceu Frigeri
+Copyright 2024-present by Alceu Frigeri
 
  This work may be distributed and/or modified under the
  conditions of
@@ -60,16 +63,16 @@ The Current Maintainer of this work is Alceu Frigeri
 -------------
 ## This work consists of the files
 
-* ctikzext.sty
+* tikzquads.sty
     - The Package itself
 
 * README.md (this file)
     - quick introduction
 
-* ctikzext Quad Shape.tex
+* tikzquads.tex
     - package documentation
 
-* ctikzext Quad Shape.pdf
+* tikzquads.pdf
     - documentation in PDF format
 
 -------------
@@ -77,5 +80,5 @@ The Current Maintainer of this work is Alceu Frigeri
 ## Changelog
 
 
-* Version 0.1
-    - Initial release 'to the public'.
+* Version 1.0
+    - Initial release by CTAN
