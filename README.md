@@ -4,7 +4,7 @@ tikzquads
 This package defines a few extra shapes (single / dual port boxes) designed to be used together with
 the CircuiTikZ package.
 
-<!---
+
 For more details,  see the (some) documentation,
 
 [tikzquads.pdf](http://mirrors.ctan.org/graphics/pgf/contrib/tikzdotncross/doc/tikzquads.pdf)
@@ -31,7 +31,7 @@ in the preamble and compile away.
 
 
 Be aware that options might change between versions, so you have to check them manually.
---->
+
 
 ## More Information and documentation
 More Information can be found in the documentation; you can find a  "bleeding edge" version
