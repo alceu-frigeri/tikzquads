@@ -15,7 +15,7 @@
 %%
 %% The Current Maintainer of this work is Alceu Frigeri
 %%
-%% This is version {1.0} {2024/01/13}
+%% This is version {1.1} {2024/10/17}
 %%
 %% The list of files that compose this work can be found in the README.md file at
 %% https://ctan.org/pkg/tikzdotncross
@@ -91,7 +91,7 @@ This package defines a few extra shapes (single / dual port boxes) designed to b
 \tableofcontents
 
 \section{Introduction}
-In standard text books, both for Circuits Theory and Electronics, quite frequently, in the process of modelling sub-circuits, one ends representing them  either:
+In standard text books, Circuits Theory and Electronics alike, quite frequently, in the process of modelling sub-circuits, one ends representing them  either:
 \begin{itemize}
   \item as a single port \emph{black box}, or
   \item as a dual port \emph{black box}
@@ -113,7 +113,7 @@ This package defines a few, parameterized shapes for each case:
     \item Quad G
     \item Quad H
   \end{itemize}
-Lastly, this package also defines a \emph{Pseudo-Graph load line} shape, for those moments where a true graph, \tsobj[pkg]{pgfplots}, isn't needed.
+Lastly, this package also defines a \emph{Pseudo-Graph load line} shape, for those moments where a true graph, like the ones \tsobj[pkg]{pgfplots} enables, isn't needed.
 \end{itemize}
  
  \subsection{CircuiTi\emph{k}Z}
@@ -161,7 +161,7 @@ The point being that, regardless of the sub-shape orientation, the intuitive geo
 
         
 \subsection{General Keys}\label{generalkeys}
-These are the keys to fine tuning a shape:
+General keys to fine tuning a shape:
 \begin{describelist*}[30mm]{keys}
   \describe {outer sep}  {Text outer separation, initial value: 1.5pt}
   \describe {inner sep}  {Text inner separation, initial value: 1pt}
@@ -392,7 +392,7 @@ node[Quad Z]{}
 
 \tscode*[emph={draw,node},emph2={x,y,fit,to,outer,inner,node},emph3={Quad,ToQuad,Black,ToBlack,Box,Thevenin,ToThevenin,Norton,ToNorton},basicstyle={\scriptsize\ttfamily},numbers=left,codeprefix={}]{QuadZDef}
 
-This shape, besides the base anchors (see \ref{quadanchors}) it has 4 internal nodes: \tsobj[key]{<node>-Z11,<node>-Z12,<node>-Z21,<node>-Z22}  and each of those sub-nodes has geographic anchors as defined at \ref{auxiliarynodes}.
+Besides the base anchors (see \ref{quadanchors}) it has 4 internal nodes: \tsobj[key]{<node>-Z11,<node>-Z12,<node>-Z21,<node>-Z22}  and each of those sub-nodes has geographic anchors as defined at \ref{auxiliarynodes}.
 \begin{tsremark}
 There is also a \tsobj[key]{ToQuad Z} to be used in a \tsobj[key]{to[ ]} path, in which case the key \tsobj[key]{outer x fit to} style will be triggered with the starting and ending points of the \tsobj[key]{to[ ]} path.
 \end{tsremark}
@@ -423,6 +423,7 @@ There is also a \tsobj[key]{ToQuad Z} to be used in a \tsobj[key]{to[ ]} path, i
   \describe{I2}{Initial value:\tsverb{$I_2$}}
   \describe{V1}{Initial value:\tsverb{$V_1$}}
   \describe{V2}{Initial value:\tsverb{$V_2$}}
+  \describe {raw sources} {This will suppress the control variables (I1, I2) in the sources' labels}
   \describe{Z11}{Initial value:\tsverb{$Z_{11}$}}
   \describe{Z12}{Initial value:\tsverb{$Z_{12}$}}
   \describe{Z21}{Initial value:\tsverb{$Z_{21}$}}
@@ -448,7 +449,7 @@ node[Quad Y]{}
 \end{codestore}
 
 \tscode*[emph={draw,node},emph2={x,y,fit,to,outer,inner,node},emph3={Quad,ToQuad,Black,ToBlack,Box,Thevenin,ToThevenin,Norton,ToNorton},basicstyle={\scriptsize\ttfamily},numbers=left,codeprefix={}]{QuadYDef}
-This shape, besides the base anchors (see \ref{quadanchors}) it has 4 internal nodes: \tsobj[key]{<node>-Y11,<node>-Y12,<node>-Y21,<node>-Y22}  and each of those sub-nodes has geographic anchors as defined at \ref{auxiliarynodes}.
+Besides the base anchors (see \ref{quadanchors}) it has 4 internal nodes: \tsobj[key]{<node>-Y11,<node>-Y12,<node>-Y21,<node>-Y22}  and each of those sub-nodes has geographic anchors as defined at \ref{auxiliarynodes}.
 \begin{tsremark}
 There is also a \tsobj[key]{ToQuad Y} to be used in a \tsobj[key]{to[ ]} path, in which case the key \tsobj[key]{outer x fit to} style will be triggered with the starting and ending points of the \tsobj[key]{to[ ]} path.
 \end{tsremark}
@@ -479,6 +480,7 @@ There is also a \tsobj[key]{ToQuad Y} to be used in a \tsobj[key]{to[ ]} path, i
   \describe{I2}{Initial value:\tsverb{$I_2$}}
   \describe{V1}{Initial value:\tsverb{$V_1$}}
   \describe{V2}{Initial value:\tsverb{$V_2$}}
+  \describe {raw sources} {This will suppress the control variables (V1, V2) in the sources' labels}
   \describe{Y11}{Initial value:\tsverb{$Y_{11}$}}
   \describe{Y12}{Initial value:\tsverb{$Y_{12}$}}
   \describe{Y21}{Initial value:\tsverb{$Y_{21}$}}
@@ -503,7 +505,7 @@ node[Quad G]{}
 
 \tscode*[emph={draw,node},emph2={x,y,fit,to,outer,inner,node},emph3={Quad,ToQuad,Black,ToBlack,Box,Thevenin,ToThevenin,Norton,ToNorton},basicstyle={\scriptsize\ttfamily},numbers=left,codeprefix={}]{QuadGDef}
 
-This shape, besides the base anchors (see \ref{quadanchors}) it has 4 internal nodes: \tsobj[key]{<node>-G11,<node>-G12,<node>-G21,<node>-G22}  and each of those sub-nodes has geographic anchors as defined at \ref{auxiliarynodes}.
+Besides the base anchors (see \ref{quadanchors}) it has 4 internal nodes: \tsobj[key]{<node>-G11,<node>-G12,<node>-G21,<node>-G22}  and each of those sub-nodes has geographic anchors as defined at \ref{auxiliarynodes}.
 \begin{tsremark}
 There is also a \tsobj[key]{ToQuad G} to be used in a \tsobj[key]{to[ ]} path, in which case the key \tsobj[key]{outer x fit to} style will be triggered with the starting and ending points of the \tsobj[key]{to[ ]} path.
 \end{tsremark}
@@ -535,6 +537,7 @@ There is also a \tsobj[key]{ToQuad G} to be used in a \tsobj[key]{to[ ]} path, i
   \describe{I2}{Initial value:\tsverb{$I_2$}}
   \describe{V1}{Initial value:\tsverb{$V_1$}}
   \describe{V2}{Initial value:\tsverb{$V_2$}}
+  \describe {raw sources} {This will suppress the control variables (V1, I2) in the sources' labels}
   \describe{G11}{Initial value:\tsverb{$G_{11}$}}
   \describe{G12}{Initial value:\tsverb{$G_{12}$}}
   \describe{G21}{Initial value:\tsverb{$G_{21}$}}
@@ -559,7 +562,7 @@ node[Quad H]{}
 
 \tscode*[emph={draw,node},emph2={x,y,fit,to,outer,inner,node},emph3={Quad,ToQuad,Black,ToBlack,Box,Thevenin,ToThevenin,Norton,ToNorton},basicstyle={\scriptsize\ttfamily},numbers=left,codeprefix={}]{QuadHDef}
 
-This shape, besides the base anchors (see \ref{quadanchors}) it has 4 internal nodes: \tsobj[key]{<node>-H11,<node>-H12,<node>-H21,<node>-H22}  and each of those sub-nodes has geographic anchors as defined at \ref{auxiliarynodes}.
+Besides the base anchors (see \ref{quadanchors}) it has 4 internal nodes: \tsobj[key]{<node>-H11,<node>-H12,<node>-H21,<node>-H22}  and each of those sub-nodes has geographic anchors as defined at \ref{auxiliarynodes}.
 \begin{tsremark}
 There is also a \tsobj[key]{ToQuad H} to be used in a \tsobj[key]{to[ ]} path, in which case the key \tsobj[key]{outer x fit to} style will be triggered with the starting and ending points of the \tsobj[key]{to[ ]} path.
 \end{tsremark}
@@ -592,6 +595,7 @@ There is also a \tsobj[key]{ToQuad H} to be used in a \tsobj[key]{to[ ]} path, i
   \describe{I2}{Initial value:\tsverb{$I_2$}}
   \describe{V1}{Initial value:\tsverb{$V_1$}}
   \describe{V2}{Initial value:\tsverb{$V_2$}}
+  \describe {raw sources} {This will suppress the control variables (I1, V2) in the sources' labels}
   \describe{H11}{Initial value:\tsverb{$H_{11}$}}
   \describe{H12}{Initial value:\tsverb{$H_{12}$}}
   \describe{H21}{Initial value:\tsverb{$H_{21}$}}

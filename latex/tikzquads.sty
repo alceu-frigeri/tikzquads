@@ -12,7 +12,7 @@
 %%
 %% The Current Maintainer of this work is Alceu Frigeri
 %%
-%% This is version {1.0} {2024/01/13}
+%% This is version {1.1} {2024/10/17}
 %%
 %% The list of files that compose this work can be found in the README.md file at
 %% https://ctan.org/pkg/tikzquads
@@ -27,8 +27,8 @@
 
 \ProvidesExplPackage
     {tikzquads}
-    {2024/01/13}
-    {1.0}
+    {2024/10/17}
+    {1.1}
     {CircuiTikZ Extension - Quadripoles and Dipoles}
 
 \ExplSyntaxOn
@@ -42,8 +42,8 @@
   {
      name        .code:n = {tikzquads} ,
      prefix      .code:n = {tikzquads} ,
-     date        .code:n = {2024/01/13},
-     version     .code:n = {1.0} ,
+     date        .code:n = {2024/10/17},
+     version     .code:n = {1.1} ,
      description .code:n = {CircuiTikZ~ Extension~- Quadripoles~ and~ Dipoles}
   }
 \cs_if_exist:NF \PkgInfo 
@@ -86,6 +86,7 @@
 \newtoggle{tikzquads@@toggle@outermarks}
 \newtoggle{tikzquads@@toggle@beziertip}
 \newtoggle{tikzquads@@toggle@roundsources}
+\newtoggle{tikzquads@@toggle@rawsources}
 %
 
 %
@@ -301,7 +302,7 @@
 
 %%%%%%%%%%%%%%%
 %%%
-%%% "QUadKeys" Path (Quadripoles)
+%%% "QuadKeys" Path (Quadripoles)
 %%%
 %%%%%%%%%%%%%%%
 
@@ -503,6 +504,8 @@
     inner marks/.style={@inner marks},
     @outer marks/.code={\toggletrue{tikzquads@@toggle@outermarks}},
     outer marks/.style={@outer marks},
+    @raw sources/.code={\toggletrue{tikzquads@@toggle@rawsources}},
+    raw sources/.style={@raw sources},
     @invert/.code={\toggletrue{tikzquads@@toggle@inverted}},
     invert/.style={%
         /tikz/xscale=-1,
@@ -803,7 +806,11 @@
         \SearchValueOf{QuadKeys}{#3}{\@@valC}
     	\pgftransformresetnontranslations
     	\tikzquads@@CondDraw{#1}{}{\pgftext[\tikzquads@@TanchorA,at={\pgfpointanchor{\tikz@fig@name-#1}{\tikzquads@@NanchorA}}]{\@@valA}}
-    	\tikzquads@@CondDraw{#2}{}{\pgftext[\tikzquads@@TanchorB,at={\pgfpointanchor{\tikz@fig@name-#2}{\tikzquads@@NanchorB}}]{\@@valB\@@valC}}
+      \ifboolexpr{togl{tikzquads@@toggle@rawsources}}{%    
+    	 \tikzquads@@CondDraw{#2}{}{\pgftext[\tikzquads@@TanchorB,at={\pgfpointanchor{\tikz@fig@name-#2}{\tikzquads@@NanchorB}}]{\@@valB}}
+      }{%
+    	 \tikzquads@@CondDraw{#2}{}{\pgftext[\tikzquads@@TanchorB,at={\pgfpointanchor{\tikz@fig@name-#2}{\tikzquads@@NanchorB}}]{\@@valB\@@valC}}
+      }
     }
 }
 
@@ -901,7 +908,11 @@
         \SearchValueOf{QuadKeys}{#4}{\@@valC}    
     	\pgftransformresetnontranslations
     	\tikzquads@@CondDraw{#2}{}{\pgftext[\tikzquads@@TanchorA,at={\pgfpointanchor{\tikz@fig@name-#2}{\tikzquads@@NanchorA}}]{\@@valA}}
-    	\tikzquads@@CondDraw{#3}{}{\pgftext[\tikzquads@@TanchorB,at={\pgfpointanchor{\tikz@fig@name-#3}{\tikzquads@@NanchorB}}]{\@@valB\@@valC}}
+      \ifboolexpr{togl{tikzquads@@toggle@rawsources}}{%
+      	\tikzquads@@CondDraw{#3}{}{\pgftext[\tikzquads@@TanchorB,at={\pgfpointanchor{\tikz@fig@name-#3}{\tikzquads@@NanchorB}}]{\@@valB}}
+      }{%
+      	\tikzquads@@CondDraw{#3}{}{\pgftext[\tikzquads@@TanchorB,at={\pgfpointanchor{\tikz@fig@name-#3}{\tikzquads@@NanchorB}}]{\@@valB\@@valC}}
+      }
     }
 }
 

@@ -79,6 +79,9 @@ The Current Maintainer of this work is Alceu Frigeri
 
 ## Changelog
 
+* Version 1.1 (this)
+    - Added a 'raw sources' key (see manual)
+    - a few typos in the documentation
 
 * Version 1.0
     - Initial release by CTAN
