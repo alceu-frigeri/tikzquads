@@ -7,7 +7,7 @@ the CircuiTikZ package.
 
 For more details,  see the (some) documentation,
 
-[tikzquads.pdf](http://mirrors.ctan.org/graphics/pgf/contrib/tikzdotncross/doc/tikzquads.pdf)
+[tikzquads.pdf](http://mirrors.ctan.org/graphics/pgf/contrib/tikzquads/doc/tikzquads.pdf)
 
 --------------
 
