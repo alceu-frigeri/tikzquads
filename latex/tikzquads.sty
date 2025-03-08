@@ -12,7 +12,7 @@
 %%
 %% The Current Maintainer of this work is Alceu Frigeri
 %%
-%% This is version {1.1} {2024/10/17}
+%% This is version {1.2} {2025/03/08}
 %%
 %% The list of files that compose this work can be found in the README.md file at
 %% https://ctan.org/pkg/tikzquads
@@ -27,8 +27,8 @@
 
 \ProvidesExplPackage
     {tikzquads}
-    {2024/10/17}
-    {1.1}
+    {2025/03/08}
+    {1.2}
     {CircuiTikZ Extension - Quadripoles and Dipoles}
 
 \ExplSyntaxOn
@@ -42,8 +42,8 @@
   {
      name        .code:n = {tikzquads} ,
      prefix      .code:n = {tikzquads} ,
-     date        .code:n = {2024/10/17},
-     version     .code:n = {1.1} ,
+     date        .code:n = {2025/03/08},
+     version     .code:n = {1.2} ,
      description .code:n = {CircuiTikZ~ Extension~- Quadripoles~ and~ Dipoles}
   }
 \cs_if_exist:NF \PkgInfo 
@@ -57,6 +57,124 @@
 %%%%%%%
 
 \RequirePackage{pgfkeysearch}
+
+
+
+
+
+
+
+\keys_define:nn {tikzquads / quadconn }
+  {
+    left .usage:n = general ,
+    left .bool_set:N = \l__tikzquads_left_bool ,
+    left .value_forbidden:n = true ,
+
+    right .usage:n = general ,
+    right .bool_set_inverse:N = \l__tikzquads_left_bool ,
+    left .value_forbidden:n = true ,
+
+    up .usage:n = general ,
+    up .bool_set:N = \l__tikzquads_up_bool ,
+    up .value_forbidden:n = true ,
+
+    down .usage:n = general ,
+    down .bool_set_inverse:N = \l__tikzquads_up_bool ,
+    down .value_forbidden:n = true ,
+
+    dots .usage:n = general ,
+    dots .bool_set:N = \l__tikzquads_dots_bool ,
+    dots .value_forbidden:n = true ,
+
+    spacing .usage:n = general ,
+    spacing .tl_set:N = \l__tikzquads_spacing_tl ,
+    spacing .default:n = 0pt ,
+    
+    swapped~ sides .usage:n = general ,
+    swapped~ sides .bool_set:N = \l__tikzquads_swap_bool ,
+    swapped~ sides .value_forbidden:n = true ,
+
+    default~ sides .usage:n = general ,
+    default~ sides .bool_set_inverse:N = \l__tikzquads_swap_bool ,
+    default~ sides .value_forbidden:n = true ,
+    
+    defaults .usage:n = general ,
+    defaults .meta:n = 
+      {
+        left , up , spacing , default~ sides ,
+      } ,
+    defaults .value_forbidden:n = true , 
+
+  }
+
+
+\cs_new_protected:Npn \__tikzquads_down:nnnnnnn #1#2#3#4#5#6#7
+  {
+  }
+
+\tl_new:N \l__tikzquads_base_spc_tl
+\tl_new:N \l__tikzquads_coord_tl
+
+\NewDocumentCommand{\QuadParConnect}{O{left,up}mm}
+  {
+    \keys_set:nn {tikzquads / quadconn}
+      {defaults,#1}
+    \SearchValueOf{QuadKeys}
+      {outer~ ext}{\l__tikzquads_base_spc_tl}
+         
+    \bool_if:NTF \l__tikzquads_dots_bool
+      { \tl_set:Nn \l__tikzquads_coord_tl {\dotcoord} }
+      { \tl_set:Nn \l__tikzquads_coord_tl {\ncoord} }
+    
+    \bool_if:NTF \l__tikzquads_swap_bool
+      {
+        \tl_set:Nn \l_tmpa_tl {2}
+        \tl_set:Nn \l_tmpb_tl {1}
+      }
+      {
+        \tl_set:Nn \l_tmpa_tl {1}
+        \tl_set:Nn \l_tmpb_tl {2}
+      }
+      
+
+    \bool_if:NTF \l__tikzquads_left_bool
+      {
+        \bool_if:NTF \l__tikzquads_up_bool
+          {
+        		\draw[name~ path=PathA]
+              (#2. \l_tmpa_tl +) -- ++(-\l__tikzquads_base_spc_tl/2 - \l__tikzquads_spacing_tl/2,0) |- (#3. \l_tmpa_tl +)
+              (#2. \l_tmpa_tl -)    ++(-\l__tikzquads_base_spc_tl - \l__tikzquads_spacing_tl,0) \l__tikzquads_coord_tl(c#2~ \l_tmpa_tl -) |- (#3. \l_tmpa_tl -);
+            \pathcross{c#2~ \l_tmpa_tl -}{#2. \l_tmpa_tl -}{PathA}[\l__tikzquads_base_spc_tl/4] 
+            \draw (#2. \l_tmpa_tl +) -- ++(-\l__tikzquads_base_spc_tl - \l__tikzquads_spacing_tl,0) \l__tikzquads_coord_tl(c#2~ \l_tmpa_tl +);
+          }
+          {
+         		\draw[name~ path=PathA]
+              (#3. \l_tmpa_tl -) -- ++(-\l__tikzquads_base_spc_tl/2 - \l__tikzquads_spacing_tl/2,0) |- (#2. \l_tmpa_tl -)
+              (#3. \l_tmpa_tl +)    ++(-\l__tikzquads_base_spc_tl - \l__tikzquads_spacing_tl,0) \l__tikzquads_coord_tl(c#3~ \l_tmpa_tl +) |- (#2. \l_tmpa_tl +);
+            \pathcross{c#3~ \l_tmpa_tl +}{#3. \l_tmpa_tl +}{PathA}[\l__tikzquads_base_spc_tl/4] 
+            \draw (#3. \l_tmpa_tl -) -- ++(-\l__tikzquads_base_spc_tl - \l__tikzquads_spacing_tl,0) \l__tikzquads_coord_tl(c#3~ \l_tmpa_tl -);
+         }
+      }
+      {
+        \bool_if:NTF \l__tikzquads_up_bool
+          {
+        		\draw[name~ path=PathA]
+              (#2. \l_tmpb_tl +) -- ++(\l__tikzquads_base_spc_tl/2 + \l__tikzquads_spacing_tl/2,0) |- (#3. \l_tmpb_tl +)
+              (#2. \l_tmpb_tl -)    ++(\l__tikzquads_base_spc_tl + \l__tikzquads_spacing_tl,0) \l__tikzquads_coord_tl(c#2~  \l_tmpb_tl -) |- (#3. \l_tmpb_tl -);
+            \pathcross*{c#2~  \l_tmpb_tl -}{#2. \l_tmpb_tl -}{PathA}[\l__tikzquads_base_spc_tl/4] 
+            \draw (#2. \l_tmpb_tl +) -- ++(\l__tikzquads_base_spc_tl + \l__tikzquads_spacing_tl,0) \l__tikzquads_coord_tl(c#2~  \l_tmpb_tl +);
+          }
+          {
+         		\draw[name~ path=PathA]
+              (#3. \l_tmpb_tl -) -- ++(\l__tikzquads_base_spc_tl/2 + \l__tikzquads_spacing_tl/2,0) |- (#2. \l_tmpb_tl -)
+              (#3. \l_tmpb_tl +)    ++(\l__tikzquads_base_spc_tl + \l__tikzquads_spacing_tl,0) \l__tikzquads_coord_tl(c#3~  \l_tmpb_tl +) |- (#2. \l_tmpb_tl +);
+            \pathcross*{c#3~  \l_tmpb_tl +}{#3. \l_tmpb_tl +}{PathA}[\l__tikzquads_base_spc_tl/4] 
+            \draw (#3. \l_tmpb_tl -) -- ++(\l__tikzquads_base_spc_tl + \l__tikzquads_spacing_tl,0) \l__tikzquads_coord_tl(c#3~  \l_tmpb_tl -);
+         }
+      }
+
+  }
+
 
 \ExplSyntaxOff
 

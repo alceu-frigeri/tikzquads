@@ -15,7 +15,7 @@
 %%
 %% The Current Maintainer of this work is Alceu Frigeri
 %%
-%% This is version {1.1} {2024/10/17}
+%% This is version {1.2} {2025/03/08}
 %%
 %% The list of files that compose this work can be found in the README.md file at
 %% https://ctan.org/pkg/tikzdotncross
@@ -44,6 +44,7 @@
 \RequirePackage[hidelinks,hypertexnames=false]{hyperref}
 
 
+\NewDocumentCommand{\pincoordinates}{m}{ \path \foreach \n/\a/\d in {#1} { (\n) \pincoord(\n,blue,\a,\d)}; }
 
 \NewDocumentCommand{\pinanchors}{mm}{ \path \foreach \n/\a/\d in {#2} { (#1.\n) \pincoord(\n,blue,\a,\d)}; }
 \NewDocumentCommand{\pingeoanchors}{m}{ \pinanchors{#1}{%
@@ -87,14 +88,13 @@
  
 This package defines a few extra shapes (single / dual port boxes) designed to be used together with the \tsobj[pkg]{CircuiTikZ} package.
 \end{typesetabstract}
-
 \tableofcontents
 
 \section{Introduction}
-In standard text books, Circuits Theory and Electronics alike, quite frequently, in the process of modelling sub-circuits, one ends representing them  either:
+In standard text books, Circuit Theory and Electronics alike, quite often one ends representing sub-circuits as either:
 \begin{itemize}
-  \item as a single port \emph{black box}, or
-  \item as a dual port \emph{black box}
+  \item a single port \emph{black box}, or
+  \item a dual port \emph{black box}
 \end{itemize}
 
 This package defines a few, parameterized shapes for each case:
@@ -113,11 +113,12 @@ This package defines a few, parameterized shapes for each case:
     \item Quad G
     \item Quad H
   \end{itemize}
-Lastly, this package also defines a \emph{Pseudo-Graph load line} shape, for those moments where a true graph, like the ones \tsobj[pkg]{pgfplots} enables, isn't needed.
 \end{itemize}
+A \emph{Pseudo-Graph load line} shape is also defined, for those moments where a true graph, like the ones \tsobj[pkg]{pgfplots} enables, isn't needed.
+Lastly, a convenience interconnection command is defined, \tsobj{\QuadParConnect} (see \ref{Parallel Conn}).
  
  \subsection{CircuiTi\emph{k}Z}
- Unfortunately, some implementation details of these shapes don't follow the code structure  adopted by \tsobj[pkg]{CircuiTikZ}, and some significant part of this package's code would have to be re-written if it were to be integrated directly in \tsobj[pkg]{CircuiTikZ}, and that's the main reason this is, for the time being, a separate package. After all, even though this doesn't follows \tsobj[pkg]{CircuiTikZ} code scheme, it does work nicely with it, as is.
+ Unfortunately, some implementation details of this package don't follow the code structure  adopted by \tsobj[pkg]{CircuiTikZ}, and some significant part of this package's code would have to be re-written if it were to be integrated directly in \tsobj[pkg]{CircuiTikZ}, and that's the main reason this is, for the time being, a separate package. After all, even though this doesn't follows \tsobj[pkg]{CircuiTikZ} code scheme, it does work nicely with it, as is.
  
 \section{Auxiliary Shapes and Basic Keys}
 Those shapes are not intended for end users.
@@ -183,7 +184,7 @@ General keys to fine tuning a shape:
 
 \section{Z, Y, G, H Quadripoles}\label{quadanchors}
 A set of configurable Quadripoles is defined, whereas quadripoles parameters (for instance $Z_{11}$, $Z_{12}$, $Z_{21}$ and $Z_{22}$) are \tsobj[marg]{key-value} parameters.
-\subsection{The Base Quadripole Shape}
+\subsection{The Base Dual Port / Quadripole Shape}
 The base shape just draws a base box and sets some connection anchors: $1+$, $1-$, $inner\ 1+$, $inner\ 1-$, $2+$, $2-$, $inner\ 2+$ and $inner\ 2-$, besides the geographic ones:
 
 %,label bottom left={T1},label bottom center={T2},label bottom right={T3}
@@ -615,7 +616,7 @@ The label pos keys expects two anchor names (... label pos=\tsargs[marg]{anchor 
 \section{Thevenin, Norton single port boxes}
 
 
-\subsection{The Base Black Box Shape}\label{BBanchors}
+\subsection{The Base Single Port / Black Box Shape}\label{BBanchors}
 
 The base shape just draws a base box and sets some connection anchors: $1+$, $1-$, $inner\ 1+$, $inner\ 1-$, besides the geographic and text ones:
 
@@ -885,6 +886,59 @@ Besides these, one can also use the keys presented at \ref{generalkeys}.
 \end{tsremark}
 
 
+\section{Parallel Connections}\label{Parallel Conn}
+Albeit simple, the association of quadripoles in parallel can be tedious if one has to do it many times over in a circuit. That for, an auxiliary, single command, is provided to easy it a bit.
+
+\begin{codedescribe}[code,new=2025/03/07]{\QuadParConnect}
+\begin{codesyntax}%
+\tsmacro{\QuadParConnect}[options]{Quad-A,Quad-B}
+\end{codesyntax}
+This will interconnect one side of \tsobj[marg]{Quad-A,Quad-B} \emph{in parallel}. It is assumed that \tsobj[marg]{Quad-A} is above \tsobj[marg]{Quad-B}. New coordinates, "\emph{c}\tsobj[marg]{Quad-Ref} \tsobj[meta]{terminals}" (note the blank),  are created at the \emph{connection terminals}, whereas \tsobj[marg]{Quad-Ref} is either \tsobj[marg]{Quad-A} (up) or \tsobj[marg]{Quad-B} (down), \tsobj[meta]{terminals} are the usual \tsobj[key]{1+,1-} (left) or \tsobj[key]{2+,2-} (right).
+\end{codedescribe}
+\tsobj[oarg]{options} can be any combination of:
+\begin{describelist*}[30mm]{keys}
+  \describe {left}  {The parallel connection will be done at the left side (default, assuming, terminals \tsobj[key]{1+,1-})}
+  \describe {right}  {The parallel connection will be done at the right side (default, assuming, terminals \tsobj[key]{2+,2-})}
+  \describe {up} {The \emph{connection terminals} will be at the top quadripole.}
+  \describe {down} {The \emph{connection terminals} will be at the bottom quadripole.}
+  \describe {dots} {Dots will be added at the \emph{connection terminals}.}
+  \describe {spacing}  {To increase/decrease the spacing between the quadripoles terminals and the connection. The default distance being the natural \tsobj[key]{out ext}.}
+  \describe {swapped sides}   {If the quadripoles are inverted, and the terminals \tsobj[key]{1+,1-} are at the right side.}
+  \describe {default sides}  {Thats the default. \tsobj[key]{1+,1-} are at the left side.}
+\end{describelist*}
+
+\begin{tsremark}
+It is assumed that the left/right directions are along the X axis, likewise, up/down are along the Y axis.
+\end{tsremark}
+
+\begin{tsremark}
+This relies on the \tsobj{\pathcross} command from the \tsobj[pkg]{tikzdotncross} package, which has to be loaded by the user.
+\end{tsremark}
+
+\begin{codestore}[DemoQuadConn]
+\begin{tikzpicture}
+  \draw (0,0) node[Quad Z, anchor=1+](Q1){}
+  (Q1.south) node[Quad Y, anchor=north](Q2){};
+  \QuadParConnect[left,up,dots]{Q1}{Q2}
+  \QuadParConnect[right,down,dots]{Q1}{Q2}  
+\end{tikzpicture}
+\end{codestore}
+
+\begin{codestore}[DemoQuadConnB]
+\begin{tikzpicture}
+  \draw (0,0) node[Quad Z, anchor=1+](Q1){}
+  (Q1.south) node[Quad Y, anchor=north](Q2){};
+  \QuadParConnect[left,up,dots]{Q1}{Q2}
+  \QuadParConnect[right,down,dots]{Q1}{Q2}  
+\pincoordinates{cQ1 1+/-100/4,cQ1 1-/-100/4,cQ2 2+/55/4,cQ2 2-/55/4}
+\end{tikzpicture}
+\end{codestore}
+
+\tscode*[codeprefix={},resultprefix={},emph={draw,node,coord},emph2={x,y,axis,fit,to,outer,inner,round,control,sources,european,alt},emph3={Quad,Black,Box,PG,linear,load,line,QuadParConnect},basicstyle={\scriptsize\ttfamily},numbers=left]{DemoQuadConn}
+\tsresult*[codeprefix={},resultprefix={}]{DemoQuadConnB}
+
+
+
 \section{Examples of use}
 
 First of, a simple case of combining a generic Quad with equations and a generic Black Box with a Pseudo-Graph:
@@ -905,7 +959,7 @@ First of, a simple case of combining a generic Quad with equations and a generic
 }
 \end{codestore}
 
-\tsdemo*[codeprefix={},resultprefix={},emph={draw,node,coord},emph2={x,y,axis,fit,to,outer,inner,round,control,sources,european,alt},emph3={Quad,Black,Box,PG,linear,load,line},basicstyle={\scriptsize\ttfamily},numbers=left]{DemoX}
+\tsdemo*[codeprefix={},resultprefix={},emph={draw,node,coord},emph2={x,y,axis,fit,to,outer,inner,round,control,sources,european,alt},emph3={Quad,Black,Box,PG,linear,load,line,QuadParConnect},basicstyle={\scriptsize\ttfamily},numbers=left]{DemoX}
 
 ~
 

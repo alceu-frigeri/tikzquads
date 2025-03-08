@@ -79,7 +79,10 @@ The Current Maintainer of this work is Alceu Frigeri
 
 ## Changelog
 
-* Version 1.1 (this)
+* Version 1.2 (this)
+    - Added \QuadParConnect command (see manual)
+
+* Version 1.1
     - Added a 'raw sources' key (see manual)
     - a few typos in the documentation
 
